@@ -1,0 +1,68 @@
+/* ---------------- Buttons ---------------- */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 18px; border-radius: var(--r-sm);
+  font-size: 0.925rem; font-weight: 550; letter-spacing: -0.01em;
+  border: 1px solid transparent; cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease), background var(--dur-fast),
+    border-color var(--dur-fast), box-shadow var(--dur-fast), opacity var(--dur-fast);
+  color: var(--text); background: transparent; white-space: nowrap;
+}
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.55; cursor: default; }
+.btn-primary { background: var(--grad-brand); color: #fff; box-shadow: 0 8px 24px rgba(51, 149, 255, 0.22); }
+.btn-primary:hover { box-shadow: 0 10px 30px rgba(51, 149, 255, 0.34); }
+.btn-ghost { border-color: var(--line-2); color: var(--text-dim); background: rgba(255,255,255,0.015); }
+.btn-ghost:hover { border-color: var(--line-strong); color: var(--text); background: rgba(255,255,255,0.04); }
+.btn-subtle { color: var(--text-muted); }
+.btn-subtle:hover { color: var(--text); }
+.btn-lg { padding: 14px 24px; font-size: 1rem; border-radius: var(--r-md); }
+
+/* ---------------- Card / surface ---------------- */
+.card {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-1);
+}
+.card-pad { padding: 22px; }
+.card-hover { transition: border-color var(--dur), transform var(--dur), background var(--dur); }
+.card-hover:hover { border-color: var(--line-2); background: var(--bg-1); }
+.surface-2 { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md); }
+
+/* ---------------- Badge / chip / dot ---------------- */
+.badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 11px; border-radius: var(--r-pill);
+  font-size: 0.775rem; font-weight: 500; color: var(--text-dim);
+  border: 1px solid var(--line-2); background: rgba(255,255,255,0.015);
+}
+.badge .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--text-muted); }
+.badge.on { color: var(--text); }
+.badge.on .dot { background: var(--green); box-shadow: 0 0 10px rgba(34,197,139,0.7); }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 9px; border-radius: var(--r-xs);
+  font-size: 0.75rem; color: var(--text-dim);
+  border: 1px solid var(--line-2); background: rgba(255,255,255,0.02);
+}
+.chip.mono { font-size: 0.72rem; }
+.chip.accent { color: var(--blue-soft); border-color: rgba(51,149,255,0.3); background: rgba(51,149,255,0.06); }
+.chip.good { color: var(--green-soft); border-color: rgba(34,197,139,0.32); background: rgba(34,197,139,0.06); }
+.dot-lg { width: 8px; height: 8px; border-radius: 999px; display: inline-block; }
+
+/* ---------------- Stat ---------------- */
+.stat .k { font-size: clamp(1.7rem, 3.2vw, 2.4rem); font-weight: 600; letter-spacing: -0.03em; line-height: 1; }
+.stat .lbl { font-size: 0.8rem; color: var(--text-muted); margin-top: 8px; }
+.stat .sub { font-size: 0.8rem; color: var(--green); margin-top: 4px; }
+
+/* ---------------- misc ---------------- */
+.divider { height: 1px; background: var(--line); border: 0; }
+.status-pill {
+  font-size: 0.72rem; font-weight: 600; padding: 3px 9px; border-radius: var(--r-pill);
+  letter-spacing: 0.01em;
+}
+.status-recovered { color: #06130d; background: var(--green); }
+.status-halted { color: #1a1305; background: var(--amber); }
+.status-gave_up { color: var(--text-muted); border: 1px solid var(--line-2); }
+.status-in_progress, .status-open { color: var(--blue-soft); border: 1px solid rgba(51,149,255,0.3); }

@@ -12,6 +12,22 @@
 
 ---
 
+## The experience
+
+The product ships as two deliberately distinct surfaces. A **cinematic, scroll-driven story** explains the problem and the intelligence — then a calm, data-driven **operating console** where you actually run recoveries.
+
+![Landing](docs/landing.png)
+
+Story mode (`/`) → **Enter the console →** → operating mode (`/dashboard`): Overview, Recoveries, Agent, Learning, Experiments, Settings.
+
+![Console — Overview](docs/dashboard.png)
+
+Every recovery opens a drawer with the agent's full reasoning trace — a decision log, not a debug dump.
+
+![Console — Recoveries](docs/recoveries.png)
+
+---
+
 ## The problem
 
 Subscription and recurring businesses lose **20–40% of recurring revenue to *involuntary* churn** — payments that fail for *recoverable* reasons: insufficient funds on debit day, an expired card, a bank in downtime, a soft "do-not-honour" decline, a UPI-autopay mandate hiccup. The customer never *chose* to leave; the payment just didn't go through.

@@ -36,6 +36,8 @@ def _action_dict(a) -> dict:
         "predicted_success": a.predicted_success,
         "succeeded": a.succeeded,
         "authored_by": a.meta.get("authored_by"),
+        "message": a.message,
+        "payment_link": a.payment_link,
     }
 
 

@@ -1,0 +1,50 @@
+/* ---------------- Pipeline ---------------- */
+.pipe { display: flex; }
+.pipe-vertical { flex-direction: column; align-items: stretch; }
+.pipe-horizontal { flex-direction: row; align-items: center; flex-wrap: wrap; }
+
+.pipe-node {
+  position: relative; display: flex; flex-direction: column; gap: 3px;
+  padding: 14px 18px; border: 1px solid var(--line-2); border-radius: var(--r-md);
+  background: var(--bg-1); min-width: 0;
+}
+.pipe-node.accent {
+  border-color: rgba(34, 197, 139, 0.4);
+  box-shadow: var(--sh-green);
+  background: linear-gradient(180deg, rgba(34, 197, 139, 0.07), transparent);
+}
+.pipe-idx { font-size: 0.68rem; letter-spacing: 0.12em; color: var(--text-faint); }
+.pipe-label { font-size: 0.95rem; font-weight: 550; color: var(--text); letter-spacing: -0.01em; }
+.pipe-node.accent .pipe-label { color: var(--green-soft); }
+.pipe-sub { font-size: 0.78rem; color: var(--text-muted); }
+
+.pipe-conn { position: relative; }
+.pipe-line { position: absolute; background: linear-gradient(var(--line-strong), var(--line)); }
+.pipe-pulse {
+  position: absolute; width: 6px; height: 6px; border-radius: 999px;
+  background: var(--blue); box-shadow: 0 0 12px 1px rgba(51, 149, 255, 0.9);
+}
+
+.pipe-vertical .pipe-conn { height: 30px; width: 1px; margin-left: 34px; }
+.pipe-vertical .pipe-line { inset: 0; width: 1px; }
+.pipe-vertical .pipe-pulse { left: -2.5px; margin-top: -3px; }
+
+.pipe-horizontal .pipe-node { flex: 1; }
+.pipe-horizontal .pipe-conn { flex: 0 0 34px; height: 1px; align-self: center; }
+.pipe-horizontal .pipe-line { inset: 0; height: 1px; }
+.pipe-horizontal .pipe-pulse { top: -2.5px; margin-left: -3px; }
+@media (max-width: 760px) {
+  .pipe-horizontal { flex-direction: column; align-items: stretch; }
+  .pipe-horizontal .pipe-node { flex: none; }
+  .pipe-horizontal .pipe-conn { flex: none; height: 26px; width: 1px; margin-left: 34px; }
+  .pipe-horizontal .pipe-line { inset: 0; width: 1px; height: auto; }
+  .pipe-horizontal .pipe-pulse { left: -2.5px; top: auto; margin-top: -3px; margin-left: 0; }
+}
+
+/* ---------------- Bars (shared by charts) ---------------- */
+.bar-track { position: relative; height: 100%; background: var(--bg-2); border-radius: var(--r-xs); overflow: hidden; }
+.bar-fill { position: absolute; inset: 0 auto 0 0; border-radius: var(--r-xs); }
+.fill-blue { background: linear-gradient(90deg, #2a6fd6, var(--blue)); }
+.fill-violet { background: linear-gradient(90deg, #5647d8, var(--violet)); }
+.fill-green { background: linear-gradient(90deg, #1ea87a, var(--green-soft)); }
+.fill-muted { background: var(--line-strong); }

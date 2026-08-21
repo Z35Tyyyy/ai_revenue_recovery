@@ -1,0 +1,71 @@
+* { box-sizing: border-box; }
+* { -webkit-tap-highlight-color: transparent; }
+
+html { scroll-behavior: smooth; }
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  line-height: 1.5;
+}
+
+::selection { background: rgba(51, 149, 255, 0.28); }
+
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; }
+
+/* thin, quiet scrollbars */
+* { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 999px; }
+*::-webkit-scrollbar-track { background: transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+
+/* --- typography scale --- */
+.display {
+  font-size: clamp(2.6rem, 6vw, 5rem);
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  font-weight: 600;
+}
+.h1 { font-size: clamp(2rem, 4.4vw, 3.4rem); line-height: 1.06; letter-spacing: -0.025em; font-weight: 600; }
+.h2 { font-size: clamp(1.5rem, 3vw, 2.2rem); line-height: 1.1; letter-spacing: -0.02em; font-weight: 600; }
+.h3 { font-size: 1.15rem; line-height: 1.25; letter-spacing: -0.01em; font-weight: 600; }
+.lead { font-size: clamp(1.05rem, 1.6vw, 1.35rem); line-height: 1.55; color: var(--text-dim); font-weight: 400; }
+.body { font-size: 0.975rem; color: var(--text-dim); }
+.small { font-size: 0.85rem; color: var(--text-muted); }
+.mono { font-family: var(--font-mono); font-feature-settings: normal; }
+.tnum { font-variant-numeric: tabular-nums; }
+
+.gradient-text {
+  background: var(--grad-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.eyebrow {
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+/* --- layout helpers --- */
+.container { width: 100%; max-width: var(--maxw); margin-inline: auto; padding-inline: var(--gutter); }
+.stack { display: flex; flex-direction: column; }
+.row { display: flex; align-items: center; }
+.between { display: flex; align-items: center; justify-content: space-between; }
+.wrap { flex-wrap: wrap; }
+.grow { flex: 1; }
+.center { display: grid; place-items: center; }
