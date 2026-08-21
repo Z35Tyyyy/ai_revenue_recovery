@@ -92,13 +92,13 @@ frontend/          React/Vite analytics dashboard
 scripts/           generate_data · train_models · run_eval · demo_live
 ```
 
-## Quickstart
+## Quickstart (development)
 
 ```bash
 make install     # Python deps
 make all         # simulate → train → eval  (runs with ZERO credentials)
-make api         # FastAPI backend on :8000
-make frontend    # React dashboard (separate terminal)
+make api         # API in dev on :8000 (reload)
+make frontend    # Vite dev server on :5173 (proxies to the API)
 ```
 
 No keys are required to run the full pipeline — the engine falls back to a faithful
@@ -107,6 +107,27 @@ mock gateway and a deterministic multilingual dunning writer. Add keys in `.env`
 messages. The LLM is used **only** for message copy (`LLM_PROVIDER` = `anthropic` /
 `groq` / `openai`); evaluation always uses templates, so a key never changes the
 measured results.
+
+## Run it on a server (production)
+
+One process serves the built React app **and** the API on a single port — no CORS, no
+proxy, no separate frontend host.
+
+```bash
+# Option A — native
+make install
+make serve                      # builds frontend/dist, serves everything on :8000
+#   → open http://<server>:8000  (HOST=0.0.0.0 by default; override PORT=... if needed)
+
+# Option B — Docker (nothing to install but Docker)
+docker compose up --build       # → http://localhost:8000
+#   or: docker build -t revenue-recovery . && docker run -p 8000:8000 revenue-recovery
+```
+
+The trained models and held-out results are committed, so the container runs out of the
+box; the population self-seeds on first start. Enable live features by passing env vars
+(e.g. `docker run -p 8000:8000 -e LLM_PROVIDER=groq -e GROQ_API_KEY=... revenue-recovery`).
+Behind a reverse proxy (nginx/Caddy), just forward to port 8000.
 
 ## Results
 

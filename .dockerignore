@@ -1,0 +1,28 @@
+# keep the build context small and reproducible
+.git
+**/node_modules
+**/dist
+.venv
+venv
+env
+__pycache__
+**/__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+.mypy_cache
+
+# regenerated / not needed in the image
+data/*.csv
+data/*.parquet
+data/*.jsonl
+data/population.json
+reports/*.png
+reports/*.html
+frontend/reports
+docs/*.png
+
+# never ship secrets
+.env
+.env.*
+*.log

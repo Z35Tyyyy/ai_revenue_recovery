@@ -9,10 +9,15 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from recovery.api.schemas import PlanRequest
 from recovery.api.service import get_service
+from recovery.config import REPO_ROOT
 from recovery.domain.taxonomy import FAILURE_REASONS
+
+_DIST = REPO_ROOT / "frontend" / "dist"
 
 
 @asynccontextmanager
@@ -33,11 +38,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.get("/")
-def root() -> dict:
-    return {"service": "ai-revenue-recovery", "docs": "/docs", "health": "/health"}
 
 
 @app.get("/health")
@@ -89,3 +89,32 @@ async def razorpay_webhook(request: Request) -> dict:
     raw = await request.body()
     signature = request.headers.get("X-Razorpay-Signature")
     return get_service().handle_webhook(raw, signature)
+
+
+# --------------------------------------------------------------------------- #
+# Serve the built React app from the same origin (single-process deployment).
+# When frontend/dist is absent (dev), the API runs standalone and you use Vite.
+# --------------------------------------------------------------------------- #
+_API_PREFIXES = ("api/", "webhooks/")
+_API_EXACT = {"health", "openapi.json", "docs", "redoc"}
+
+if _DIST.is_dir():
+    app.mount("/assets", StaticFiles(directory=_DIST / "assets"), name="assets")
+
+    @app.get("/{full_path:path}")
+    def spa(full_path: str):
+        # Real API paths that fell through should 404 as JSON, not as index.html.
+        if full_path.startswith(_API_PREFIXES) or full_path in _API_EXACT:
+            return JSONResponse({"detail": "Not Found"}, status_code=404)
+        return FileResponse(_DIST / "index.html")
+
+else:
+
+    @app.get("/")
+    def root() -> dict:
+        return {
+            "service": "ai-revenue-recovery",
+            "docs": "/docs",
+            "health": "/health",
+            "note": "frontend not built — run `make build-frontend` or use the Vite dev server",
+        }

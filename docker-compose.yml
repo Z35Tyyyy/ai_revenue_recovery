@@ -1,0 +1,14 @@
+# One-command deploy: `docker compose up --build`  →  http://localhost:8000
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    # Optional: uncomment to enable live LLM copy / real Razorpay test-mode links.
+    # environment:
+    #   LLM_PROVIDER: groq
+    #   GROQ_API_KEY: ${GROQ_API_KEY}
+    #   RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID}
+    #   RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET}
+    #   RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET}
+    restart: unless-stopped
