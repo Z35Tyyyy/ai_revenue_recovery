@@ -129,4 +129,61 @@
   .side-link { white-space: nowrap; padding: 8px 12px; }
   .side-link.active::before { display: none; }
   .side-foot { display: none; }
+  /* topbar stops competing with the sticky nav strip for top:0 */
+  .dash-top { position: static; height: auto; padding: 10px 16px; flex-wrap: wrap; gap: 8px; }
+  .top-title { display: none; }
+  .dash-body { padding: 22px 16px 60px; }
 }
+
+/* ---------------- Forms ---------------- */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 0.76rem; color: var(--text-muted); }
+.field select, .field input {
+  background: var(--bg-2); border: 1px solid var(--line-2); color: var(--text);
+  border-radius: var(--r-sm); padding: 10px 12px; font-size: 0.88rem; outline: none;
+  transition: border-color var(--dur-fast);
+}
+.field select:focus, .field input:focus { border-color: var(--blue); }
+@media (max-width: 520px) { .form-grid { grid-template-columns: 1fr; } }
+
+/* ---------------- Agent console ---------------- */
+.agent-cols { display: grid; grid-template-columns: 0.88fr 1.12fr; gap: 22px; align-items: start; }
+@media (max-width: 920px) { .agent-cols { grid-template-columns: 1fr; } }
+.agent-empty {
+  border: 1px dashed var(--line-2); border-radius: var(--r-lg); padding: 44px 24px;
+  text-align: center; color: var(--text-muted); min-height: 280px; display: grid; place-items: center;
+}
+.alt-list { display: flex; flex-direction: column; gap: 9px; }
+.alt-row { display: grid; grid-template-columns: 1fr 90px 44px; gap: 12px; align-items: center; }
+.alt-row .aln { font-size: 0.84rem; color: var(--text-dim); }
+.alt-row .alt { height: 7px; }
+.alt-row .alv { text-align: right; font-size: 0.8rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+/* ---------------- Learning ---------------- */
+.learn-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+.learn-headline { display: flex; align-items: baseline; gap: 14px; margin-bottom: 20px; }
+.learn-headline .lh-v { font-size: 2.4rem; font-weight: 600; letter-spacing: -0.03em; color: var(--green-soft); }
+.learn-headline .lh-a { font-size: 1.1rem; font-weight: 550; }
+.learn-headline .lh-l { color: var(--text-muted); font-size: 0.85rem; }
+
+/* ---------------- Experiments ---------------- */
+.exp-rows { display: flex; flex-direction: column; gap: 14px; }
+.exp-row { display: grid; grid-template-columns: 190px 1fr 62px; gap: 16px; align-items: center; }
+.exp-row .en { font-size: 0.88rem; color: var(--text-dim); }
+.exp-row.win .en { color: var(--text); font-weight: 600; }
+.exp-row .et { height: 26px; border-radius: var(--r-sm); }
+.exp-row .ev { text-align: right; font-variant-numeric: tabular-nums; font-size: 0.9rem; }
+.metrics-table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+.metrics-table th, .metrics-table td { text-align: right; padding: 11px 12px; border-bottom: 1px solid var(--line); }
+.metrics-table th:first-child, .metrics-table td:first-child { text-align: left; }
+.metrics-table th { color: var(--text-muted); font-weight: 500; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.metrics-table tr.win td { background: rgba(34,197,139,0.06); color: var(--text); }
+.metrics-table td { color: var(--text-dim); font-variant-numeric: tabular-nums; }
+
+/* ---------------- Settings ---------------- */
+.set-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 620px) { .set-grid { grid-template-columns: 1fr; } }
+.set-row { display: flex; justify-content: space-between; align-items: center; padding: 15px 18px; }
+.set-row .sk { font-size: 0.86rem; color: var(--text-dim); }
+.set-row .sv { font-size: 0.86rem; color: var(--text); font-family: var(--font-mono); }

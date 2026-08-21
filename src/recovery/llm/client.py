@@ -42,14 +42,21 @@ class LLMClient:
                 if provider == "anthropic":
                     import anthropic
 
-                    self._client = anthropic.Anthropic(api_key=self._settings.active_llm_key)
+                    self._client = anthropic.Anthropic(
+                        api_key=self._settings.active_llm_key, timeout=12.0, max_retries=0
+                    )
                     self._kind = "anthropic"
                 else:  # groq / openai are OpenAI-compatible
                     from openai import OpenAI
 
                     base_url = _GROQ_BASE_URL if provider == "groq" else None
+                    # Short timeout + no retries so an unreachable model falls back to
+                    # templates fast instead of hanging the request.
                     self._client = OpenAI(
-                        api_key=self._settings.active_llm_key, base_url=base_url
+                        api_key=self._settings.active_llm_key,
+                        base_url=base_url,
+                        timeout=12.0,
+                        max_retries=0,
                     )
                     self._kind = "openai"
             except Exception:

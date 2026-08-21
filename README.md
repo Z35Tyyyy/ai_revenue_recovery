@@ -26,6 +26,14 @@ Every recovery opens a drawer with the agent's full reasoning trace — a decisi
 
 ![Console — Recoveries](docs/recoveries.png)
 
+The **Agent** page hands the engine a failed charge live — recommended action, confidence, alternatives, the reasoning trace, and a generated multilingual message with a payment link:
+
+![Console — Agent](docs/agent.png)
+
+**Experiments** compares every policy on identical ground truth; **Learning** shows what the bandit converged to per failure class.
+
+![Console — Experiments](docs/experiments.png)
+
 ---
 
 ## The problem
