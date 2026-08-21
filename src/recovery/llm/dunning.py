@@ -58,6 +58,16 @@ _REASON_PHRASE = {
 }
 
 
+def _display_name(name: str) -> str | None:
+    """A friendly first name, or None when we only have a synthetic/numeric id."""
+    if not name:
+        return None
+    token = name.split()[-1]
+    if any(ch.isdigit() for ch in token) or token.lower() in {"customer", "user"}:
+        return None
+    return token
+
+
 @dataclass
 class DunningMessage:
     text: str
@@ -104,6 +114,7 @@ class DunningGenerator:
             Language.KN: "Kannada",
             Language.BN: "Bengali",
         }[language]
+        first = _display_name(cust.name)
         length = "under 45 words" if channel in (Channel.WHATSAPP, Channel.SMS) else "60-90 words"
 
         system = (
@@ -114,7 +125,7 @@ class DunningGenerator:
         )
         user = (
             f"Channel: {channel.value}. Language: {lang_name}. Length: {length}.\n"
-            f"Customer first name: {cust.name.split()[-1] if cust.name else 'there'}.\n"
+            f"Customer first name: {first or 'unknown (greet warmly without a name)'}.\n"
             f"Plan: {case.subscription.plan_name}. Amount due: {amount}.\n"
             f"Situation (say it gently, customer-friendly): {reason.description}\n"
             f"Secure payment link to include verbatim: {link}\n"
@@ -142,7 +153,7 @@ class DunningGenerator:
         cust = case.customer
         reason = classify_reason(case.failure.reason_code)
         amount = format_inr(case.failure.amount_paise)
-        first = cust.name.split()[-1] if cust.name else None
+        first = _display_name(cust.name)
         base_lang = language if language in _REASON_PHRASE else Language.EN
         phrase = _REASON_PHRASE[base_lang][reason.recoverability]
         plan = case.subscription.plan_name
