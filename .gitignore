@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Project artifacts (regenerated via `make`)
+data/*.parquet
+data/*.csv
+data/*.jsonl
+models/*.pkl
+models/*.joblib
+reports/*.png
+reports/*.html
+!reports/.gitkeep
+!data/.gitkeep
+!models/.gitkeep
+
+# Env / secrets
+.env
+.env.local
+*.key
+
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+node_modules/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.log
