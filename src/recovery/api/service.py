@@ -115,11 +115,16 @@ class RecoveryService:
         self.recovery_model = recovery_model or RecoveryModel.load(self.settings.model_dir)
         self.timing_model = timing_model or TimingModel.load(self.settings.model_dir)
         self.population = population or self._load_population()
+        # Live generator (used for the interactive /api/plan demo); the warm-up
+        # engine forces templates so startup stays fast and offline.
         self.dunning = DunningGenerator()
         self.gateway = get_gateway(self.settings)
         self.bandit = ContextualBandit(seed=self.settings.seed)
         self.engine = RecoveryEngine(
-            self.recovery_model, self.timing_model, dunning=self.dunning, bandit=self.bandit
+            self.recovery_model,
+            self.timing_model,
+            dunning=DunningGenerator(force_templates=True),
+            bandit=self.bandit,
         )
         self._records: list[dict] = []
         self._warm(sample_size)
@@ -156,6 +161,7 @@ class RecoveryService:
             "status": "ok",
             "razorpay_live": self.gateway.live,
             "llm_enabled": self.settings.llm_enabled,
+            "llm_provider": self.settings.llm_provider if self.settings.llm_enabled else None,
             "models_loaded": True,
             "sample_cases": len(self._records),
             "has_holdout_eval": self._holdout is not None,
@@ -190,6 +196,7 @@ class RecoveryService:
             "capabilities": {
                 "razorpay_live": self.gateway.live,
                 "llm_enabled": self.settings.llm_enabled,
+                "llm_provider": self.settings.llm_provider if self.settings.llm_enabled else None,
             },
         }
 

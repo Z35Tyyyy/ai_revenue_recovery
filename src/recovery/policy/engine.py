@@ -179,7 +179,7 @@ class RecoveryEngine:
 
         # --- nudge (dunning / card-update / switch / grace) ---
         nudge_arm = _NUDGE_ACTION.get(cls, ActionType.DUNNING_NUDGE)
-        q = 1.0 if self.dunning.llm.available else self.config.expected_message_quality
+        q = 1.0 if self.dunning.uses_llm else self.config.expected_message_quality
         p_nudge_raw = self._nudge_prob(case, q)
         p_nudge = self._apply_bandit(cls, nudge_arm, p_nudge_raw)
         nudge_when = self._next_morning(now)

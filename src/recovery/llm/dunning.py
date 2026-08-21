@@ -79,8 +79,15 @@ class DunningMessage:
 
 
 class DunningGenerator:
-    def __init__(self, llm: LLMClient | None = None) -> None:
+    def __init__(self, llm: LLMClient | None = None, force_templates: bool = False) -> None:
         self.llm = llm or LLMClient()
+        # Eval/warm paths force templates so a configured key never changes the
+        # measured numbers or triggers a storm of API calls.
+        self.force_templates = force_templates
+
+    @property
+    def uses_llm(self) -> bool:
+        return self.llm.available and not self.force_templates
 
     # -- public API ---------------------------------------------------------- #
     def generate(
@@ -91,14 +98,14 @@ class DunningGenerator:
         payment_link: str | None = None,
     ) -> DunningMessage:
         link = payment_link or "https://rzp.io/i/demo-recovery-link"
-        if self.llm.available:
-            msg = self._via_claude(case, channel, language, link)
+        if self.uses_llm:
+            msg = self._via_llm(case, channel, language, link)
             if msg is not None:
                 return msg
         return self._via_template(case, channel, language, link)
 
-    # -- Claude path --------------------------------------------------------- #
-    def _via_claude(
+    # -- LLM path (Claude / Groq / OpenAI) ----------------------------------- #
+    def _via_llm(
         self, case: RecoveryCase, channel: Channel, language: Language, link: str
     ) -> DunningMessage | None:
         cust = case.customer
@@ -143,7 +150,7 @@ class DunningGenerator:
             language=language,
             channel=channel,
             subject=subject,
-            authored_by="claude",
+            authored_by=self.llm.provider,
         )
 
     # -- Template path ------------------------------------------------------- #

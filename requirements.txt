@@ -12,7 +12,8 @@ python-multipart>=0.0.9
 
 # --- Razorpay + LLM (optional at runtime; graceful fallbacks if absent) ---
 razorpay>=1.4,<2
-anthropic>=0.39,<1
+anthropic>=0.39,<1          # LLM_PROVIDER=anthropic
+openai>=1.40,<2             # LLM_PROVIDER=groq (OpenAI-compatible) or openai
 httpx>=0.27,<1
 
 # --- Utilities ---

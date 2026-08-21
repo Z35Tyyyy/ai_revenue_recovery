@@ -28,6 +28,7 @@ from recovery.domain.models import (
 )
 from recovery.domain.taxonomy import classify_reason
 from recovery.eval.executor import SimulatedExecutor
+from recovery.llm.dunning import DunningGenerator
 from recovery.ml.models import RecoveryModel, TimingModel
 from recovery.policy.bandit import ContextualBandit
 from recovery.policy.engine import EngineConfig, RecoveryEngine
@@ -230,7 +231,13 @@ def evaluate(
     executor = SimulatedExecutor(env)
     bandit = ContextualBandit(seed=seed)
     engine = RecoveryEngine(
-        recovery_model, timing_model, bandit=bandit, config=config or EngineConfig()
+        recovery_model,
+        timing_model,
+        # Force templates so evaluation is offline, fast, and reproducible
+        # regardless of any configured LLM key.
+        dunning=DunningGenerator(force_templates=True),
+        bandit=bandit,
+        config=config or EngineConfig(),
     )
 
     y_true: list[int] = []

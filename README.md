@@ -77,9 +77,12 @@ make api         # FastAPI backend on :8000
 make frontend    # React dashboard (separate terminal)
 ```
 
-No Razorpay or Anthropic keys are required to run the full pipeline — the engine falls
-back to a faithful mock gateway and a deterministic dunning writer. Add keys in `.env`
-(see `.env.example`) to enable the **live** test-mode recovery demo and LLM-authored messages.
+No keys are required to run the full pipeline — the engine falls back to a faithful
+mock gateway and a deterministic multilingual dunning writer. Add keys in `.env`
+(see `.env.example`) to enable the **live** test-mode recovery demo and LLM-authored
+messages. The LLM is used **only** for message copy (`LLM_PROVIDER` = `anthropic` /
+`groq` / `openai`); evaluation always uses templates, so a key never changes the
+measured results.
 
 ## Results
 

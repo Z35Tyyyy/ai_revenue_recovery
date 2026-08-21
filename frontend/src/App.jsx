@@ -57,7 +57,7 @@ export default function App() {
             {cap.razorpay_live ? "Razorpay: live test-mode" : "Razorpay: mock"}
           </span>
           <span className={`badge ${cap.llm_enabled ? "on" : "off"}`}>
-            {cap.llm_enabled ? "Dunning: Claude" : "Dunning: templates"}
+            {cap.llm_enabled ? `Dunning: ${cap.llm_provider}` : "Dunning: templates"}
           </span>
           {health && <span className="badge on">{health.sample_cases} episodes warmed</span>}
         </div>
