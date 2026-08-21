@@ -1,0 +1,16 @@
+{
+  "recovery": {
+    "n_train": 9600,
+    "n_val": 2400,
+    "positive_rate": 0.5368333333333334,
+    "roc_auc": 0.7731180738638903,
+    "avg_precision": 0.8062081984459929
+  },
+  "timing": {
+    "n_train": 28800,
+    "n_val": 7200,
+    "positive_rate": 0.25580555555555556,
+    "roc_auc": 0.8537436181763579,
+    "avg_precision": 0.6994082493605186
+  }
+}
