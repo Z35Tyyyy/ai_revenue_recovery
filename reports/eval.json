@@ -84,8 +84,6 @@
   "engine_prediction_auc": 0.6644,
   "bandit": {
     "hard_decline": {
-      "retry_now": 0.5,
-      "retry_optimal": 0.5,
       "switch_method": 0.039
     },
     "insufficient_funds": {
@@ -94,14 +92,10 @@
       "retry_optimal": 0.326
     },
     "needs_card_update": {
-      "request_card_update": 0.24,
-      "retry_now": 0.5,
-      "retry_optimal": 0.5
+      "request_card_update": 0.24
     },
     "needs_reauth": {
-      "dunning_nudge": 0.228,
-      "retry_now": 0.5,
-      "retry_optimal": 0.5
+      "dunning_nudge": 0.228
     },
     "soft_decline": {
       "dunning_nudge": 0.192,
@@ -109,7 +103,6 @@
       "retry_optimal": 0.265
     },
     "transient": {
-      "dunning_nudge": 0.5,
       "retry_now": 0.658,
       "retry_optimal": 0.568
     }

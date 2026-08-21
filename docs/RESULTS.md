@@ -13,7 +13,7 @@ Evaluated on a held-out population of **6,000 customers** and **9,000 failed rec
 
 ## Full comparison
 
-| Policy | Recovery rate | Revenue recovered | ₹-recovery rate | Retries | Messages | Avg days |
+| Policy | Recovery rate | Revenue recovered | ₹-rate | Retries | Msgs | Days |
 |---|---|---|---|---|---|---|
 | No recovery (floor) | 0.0% | ₹0 | 0.0% | 0 | 0 | — |
 | Fixed next-day retry (Razorpay default) | 47.1% | ₹63,50,215 | 47.8% | 26,361 | 0 | 1.7 |
@@ -38,8 +38,6 @@ Success rate the contextual bandit converged to per (failure class → action):
 ```json
 {
   "hard_decline": {
-    "retry_now": 0.5,
-    "retry_optimal": 0.5,
     "switch_method": 0.039
   },
   "insufficient_funds": {
@@ -48,14 +46,10 @@ Success rate the contextual bandit converged to per (failure class → action):
     "retry_optimal": 0.326
   },
   "needs_card_update": {
-    "request_card_update": 0.24,
-    "retry_now": 0.5,
-    "retry_optimal": 0.5
+    "request_card_update": 0.24
   },
   "needs_reauth": {
-    "dunning_nudge": 0.228,
-    "retry_now": 0.5,
-    "retry_optimal": 0.5
+    "dunning_nudge": 0.228
   },
   "soft_decline": {
     "dunning_nudge": 0.192,
@@ -63,7 +57,6 @@ Success rate the contextual bandit converged to per (failure class → action):
     "retry_optimal": 0.265
   },
   "transient": {
-    "dunning_nudge": 0.5,
     "retry_now": 0.658,
     "retry_optimal": 0.568
   }

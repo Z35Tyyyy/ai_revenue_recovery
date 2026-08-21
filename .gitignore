@@ -18,13 +18,15 @@ htmlcov/
 data/*.parquet
 data/*.csv
 data/*.jsonl
-models/*.pkl
-models/*.joblib
+data/population.json          # large; the API regenerates it on startup if absent
 reports/*.png
 reports/*.html
 !reports/.gitkeep
 !data/.gitkeep
 !models/.gitkeep
+# NOTE: the trained models (models/*.joblib) and holdout results (reports/eval.json)
+# ARE committed so the app runs immediately after `make install`, no `make all` needed.
+# Regenerate them any time with `make train` / `make eval`.
 
 # Env / secrets
 .env

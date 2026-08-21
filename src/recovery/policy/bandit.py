@@ -46,8 +46,15 @@ class ContextualBandit:
             p[1] += 1.0
 
     def snapshot(self) -> dict[str, dict[str, float]]:
-        """Learned success rate per (context, arm), for dashboards / inspection."""
+        """Learned success rate per (context, arm) — only arms actually tried.
+
+        Untried arms sit at their 0.5 prior and would misleadingly read as "best",
+        so we exclude them; what remains is what the bandit genuinely learned.
+        """
         out: dict[str, dict[str, float]] = {}
         for (ctx, arm), (a, b) in sorted(self._ab.items()):
+            observations = (a - self._prior) + (b - self._prior)
+            if observations <= 0:
+                continue
             out.setdefault(ctx, {})[arm] = round(a / (a + b), 3)
         return out

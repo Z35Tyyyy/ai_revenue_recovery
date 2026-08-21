@@ -83,8 +83,30 @@ back to a faithful mock gateway and a deterministic dunning writer. Add keys in 
 
 ## Results
 
-> Populated by `make eval` — see [`reports/`](reports/). Headline numbers and the
-> methodology are written up in [`docs/RESULTS.md`](docs/RESULTS.md).
+On **9,000 unseen failed recurring charges** (a held-out population the models never
+trained on), every policy facing the *identical* hidden ground truth:
+
+| Policy | Recovery rate | Revenue recovered | Retries used |
+|---|---|---|---|
+| No recovery (floor) | 0.0% | ₹0 | 0 |
+| Fixed next-day retry *(Razorpay default)* | 47.1% | ₹63.5L | 26,361 |
+| Fixed retry + generic email | 53.2% | ₹72.0L | 25,122 |
+| **AI Revenue Recovery engine** | **67.7%** | **₹89.9L** | **13,012** |
+
+**+20.6 points (+44% relative) over the fixed-retry default, +₹26.4L recovered — with
+roughly half the bank retries.** It waits for the payday window instead of hammering,
+and wins biggest exactly where a blind retry is useless:
+
+| Failure class | Fixed retry | Engine |
+|---|---|---|
+| Expired card (needs update) | 8.6% | **65.6%** |
+| Paused/revoked mandate (needs re-auth) | 12.6% | **64.4%** |
+| Insufficient funds | 58.5% | **73.7%** |
+
+![Dashboard](docs/dashboard.png)
+
+Numbers are reproduced by `make eval` on seed `9999`; full methodology and the
+bandit's learned policy are in [`docs/RESULTS.md`](docs/RESULTS.md).
 
 ## Documentation
 
