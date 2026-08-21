@@ -1,0 +1,267 @@
+{
+  "policies": {
+    "no_action": {
+      "name": "no_action",
+      "total": 9000,
+      "recovered": 0,
+      "recovery_rate": 0.0,
+      "revenue_total_paise": 1328480000,
+      "revenue_recovered_paise": 0,
+      "revenue_recovery_rate": 0.0,
+      "avg_days_to_recover": null,
+      "retries": 0,
+      "nudges": 0,
+      "by_class_rate": {
+        "hard_decline": 0.0,
+        "insufficient_funds": 0.0,
+        "needs_card_update": 0.0,
+        "needs_reauth": 0.0,
+        "soft_decline": 0.0,
+        "transient": 0.0
+      }
+    },
+    "fixed_retry": {
+      "name": "fixed_retry",
+      "total": 9000,
+      "recovered": 4235,
+      "recovery_rate": 0.4706,
+      "revenue_total_paise": 1328480000,
+      "revenue_recovered_paise": 635021500,
+      "revenue_recovery_rate": 0.478,
+      "avg_days_to_recover": 1.72,
+      "retries": 26361,
+      "nudges": 0,
+      "by_class_rate": {
+        "hard_decline": 0.006550218340611353,
+        "insufficient_funds": 0.5847076461769115,
+        "needs_card_update": 0.08630952380952381,
+        "needs_reauth": 0.12573344509639564,
+        "soft_decline": 0.6048801369863014,
+        "transient": 0.9920079920079921
+      }
+    },
+    "generic_dunning": {
+      "name": "generic_dunning",
+      "total": 9000,
+      "recovered": 4785,
+      "recovery_rate": 0.5317,
+      "revenue_total_paise": 1328480000,
+      "revenue_recovered_paise": 720116500,
+      "revenue_recovery_rate": 0.5421,
+      "avg_days_to_recover": 1.73,
+      "retries": 25122,
+      "nudges": 5664,
+      "by_class_rate": {
+        "hard_decline": 0.028384279475982533,
+        "insufficient_funds": 0.6375562218890555,
+        "needs_card_update": 0.21875,
+        "needs_reauth": 0.23973176865046103,
+        "soft_decline": 0.6404109589041096,
+        "transient": 0.994005994005994
+      }
+    },
+    "engine": {
+      "name": "engine",
+      "total": 9000,
+      "recovered": 6089,
+      "recovery_rate": 0.6766,
+      "revenue_total_paise": 1328480000,
+      "revenue_recovered_paise": 899441100,
+      "revenue_recovery_rate": 0.677,
+      "avg_days_to_recover": 4.54,
+      "retries": 13012,
+      "nudges": 8163,
+      "by_class_rate": {
+        "hard_decline": 0.017467248908296942,
+        "insufficient_funds": 0.737256371814093,
+        "needs_card_update": 0.6555059523809523,
+        "needs_reauth": 0.6437552388935457,
+        "soft_decline": 0.646832191780822,
+        "transient": 0.9530469530469531
+      }
+    }
+  },
+  "engine_prediction_auc": 0.6644,
+  "bandit": {
+    "hard_decline": {
+      "retry_now": 0.5,
+      "retry_optimal": 0.5,
+      "switch_method": 0.039
+    },
+    "insufficient_funds": {
+      "dunning_nudge": 0.251,
+      "retry_now": 0.289,
+      "retry_optimal": 0.326
+    },
+    "needs_card_update": {
+      "request_card_update": 0.24,
+      "retry_now": 0.5,
+      "retry_optimal": 0.5
+    },
+    "needs_reauth": {
+      "dunning_nudge": 0.228,
+      "retry_now": 0.5,
+      "retry_optimal": 0.5
+    },
+    "soft_decline": {
+      "dunning_nudge": 0.192,
+      "retry_now": 0.224,
+      "retry_optimal": 0.265
+    },
+    "transient": {
+      "dunning_nudge": 0.5,
+      "retry_now": 0.658,
+      "retry_optimal": 0.568
+    }
+  },
+  "sample_cases": [
+    {
+      "case_id": "case_fail_000000",
+      "reason": "insufficient_funds",
+      "class": "insufficient_funds",
+      "amount": "\u20b91,999",
+      "language": "hi",
+      "channel": "whatsapp",
+      "recovered": true,
+      "predicted_recover_prob": 0.614,
+      "trace": [
+        "Diagnosed 'insufficient_funds' \u2192 insufficient_funds (retry can help). Triage P(recover)=0.61.",
+        "Timing model \u2192 best retry Sun 02 Aug 00:00 (P=0.60); soonest retry P=0.16.",
+        "Nudge belief for insufficient_funds: P=0.27 (quality 0.85, hi/whatsapp).",
+        "Chose retry_optimal: expected recovery \u20b9890.37 = 0.60 \u00d7 \u20b91,999.",
+        "\u2192 retry_optimal succeeded \u2014 retry @ 02 Aug 00:00."
+      ]
+    },
+    {
+      "case_id": "case_fail_000001",
+      "reason": "authentication_failed",
+      "class": "needs_reauth",
+      "amount": "\u20b9299",
+      "language": "en",
+      "channel": "whatsapp",
+      "recovered": true,
+      "predicted_recover_prob": 0.27,
+      "trace": [
+        "Diagnosed 'authentication_failed' \u2192 needs_reauth (retry can help). Triage P(recover)=0.27.",
+        "Timing model \u2192 best retry Sat 27 Jun 10:00 (P=0.05); soonest retry P=0.03.",
+        "Nudge belief for needs_reauth: P=0.35 (quality 0.85, en/whatsapp).",
+        "Chose dunning_nudge: expected recovery \u20b9102.47 = 0.35 \u00d7 \u20b9299.",
+        "\u2192 dunning_nudge failed \u2014 template msg via whatsapp.",
+        "Timing model \u2192 best retry Wed 01 Jul 13:00 (P=0.07); soonest retry P=0.04.",
+        "Nudge belief for needs_reauth: P=0.35 (quality 0.85, en/whatsapp).",
+        "Bandit-adjusted P(dunning_nudge|needs_reauth)=0.35 from 1 outcomes.",
+        "Chose dunning_nudge: expected recovery \u20b997.26 = 0.35 \u00d7 \u20b9299.",
+        "\u2192 dunning_nudge succeeded \u2014 template msg via whatsapp."
+      ]
+    },
+    {
+      "case_id": "case_fail_000003",
+      "reason": "insufficient_funds",
+      "class": "insufficient_funds",
+      "amount": "\u20b9299",
+      "language": "hi",
+      "channel": "whatsapp",
+      "recovered": true,
+      "predicted_recover_prob": 0.587,
+      "trace": [
+        "Diagnosed 'insufficient_funds' \u2192 insufficient_funds (retry can help). Triage P(recover)=0.59.",
+        "Timing model \u2192 best retry Tue 05 May 10:00 (P=0.63); soonest retry P=0.19.",
+        "Nudge belief for insufficient_funds: P=0.22 (quality 0.85, hi/whatsapp).",
+        "Bandit-adjusted P(retry_optimal|insufficient_funds)=0.62 from 1 outcomes.",
+        "Chose retry_optimal: expected recovery \u20b9178.17 = 0.62 \u00d7 \u20b9299.",
+        "\u2192 retry_optimal succeeded \u2014 retry @ 05 May 10:00."
+      ]
+    },
+    {
+      "case_id": "case_fail_000004",
+      "reason": "insufficient_funds",
+      "class": "insufficient_funds",
+      "amount": "\u20b9299",
+      "language": "hi",
+      "channel": "whatsapp",
+      "recovered": true,
+      "predicted_recover_prob": 0.65,
+      "trace": [
+        "Diagnosed 'insufficient_funds' \u2192 insufficient_funds (retry can help). Triage P(recover)=0.65.",
+        "Timing model \u2192 best retry Tue 07 Jul 00:00 (P=0.61); soonest retry P=0.18.",
+        "Nudge belief for insufficient_funds: P=0.22 (quality 0.85, hi/whatsapp).",
+        "Bandit-adjusted P(retry_optimal|insufficient_funds)=0.62 from 2 outcomes.",
+        "Chose retry_optimal: expected recovery \u20b9151.39 = 0.62 \u00d7 \u20b9299.",
+        "\u2192 retry_optimal succeeded \u2014 retry @ 07 Jul 00:00."
+      ]
+    },
+    {
+      "case_id": "case_fail_000006",
+      "reason": "mandate_paused",
+      "class": "needs_reauth",
+      "amount": "\u20b9999",
+      "language": "hinglish",
+      "channel": "whatsapp",
+      "recovered": true,
+      "predicted_recover_prob": 0.296,
+      "trace": [
+        "Diagnosed 'mandate_paused' \u2192 needs_reauth (retry cannot help). Triage P(recover)=0.30.",
+        "Timing model \u2192 best retry Thu 21 May 13:00 (P=0.05); soonest retry P=0.04.",
+        "Nudge belief for needs_reauth: P=0.30 (quality 0.85, hinglish/whatsapp).",
+        "Bandit-adjusted P(dunning_nudge|needs_reauth)=0.30 from 2 outcomes.",
+        "Chose dunning_nudge: expected recovery \u20b9289.28 = 0.30 \u00d7 \u20b9999.",
+        "\u2192 dunning_nudge failed \u2014 template msg via whatsapp.",
+        "Timing model \u2192 best retry Thu 21 May 13:00 (P=0.05); soonest retry P=0.04.",
+        "Nudge belief for needs_reauth: P=0.30 (quality 0.85, hinglish/whatsapp).",
+        "Bandit-adjusted P(dunning_nudge|needs_reauth)=0.29 from 3 outcomes.",
+        "Chose dunning_nudge: expected recovery \u20b9267.32 = 0.29 \u00d7 \u20b9999.",
+        "\u2192 dunning_nudge failed \u2014 template msg via whatsapp.",
+        "Timing model \u2192 best retry Wed 03 Jun 10:00 (P=0.04); soonest retry P=0.05.",
+        "Nudge belief for needs_reauth: P=0.30 (quality 0.85, hinglish/whatsapp).",
+        "Bandit-adjusted P(dunning_nudge|needs_reauth)=0.31 from 4 outcomes.",
+        "Chose dunning_nudge: expected recovery \u20b9271.57 = 0.31 \u00d7 \u20b9999.",
+        "\u2192 dunning_nudge failed \u2014 template msg via whatsapp.",
+        "Timing model \u2192 best retry Fri 05 Jun 13:00 (P=0.05); soonest retry P=0.04.",
+        "Nudge belief for needs_reauth: P=0.30 (quality 0.85, hinglish/whatsapp).",
+        "Bandit-adjusted P(dunning_nudge|needs_reauth)=0.29 from 5 outcomes.",
+        "Chose dunning_nudge: expected recovery \u20b9244.63 = 0.29 \u00d7 \u20b9999.",
+        "\u2192 dunning_nudge succeeded \u2014 template msg via whatsapp."
+      ]
+    },
+    {
+      "case_id": "case_fail_000007",
+      "reason": "authentication_failed",
+      "class": "needs_reauth",
+      "amount": "\u20b94,999",
+      "language": "en",
+      "channel": "whatsapp",
+      "recovered": true,
+      "predicted_recover_prob": 0.367,
+      "trace": [
+        "Diagnosed 'authentication_failed' \u2192 needs_reauth (retry can help). Triage P(recover)=0.37.",
+        "Timing model \u2192 best retry Sun 14 Jun 10:00 (P=0.05); soonest retry P=0.03.",
+        "Nudge belief for needs_reauth: P=0.32 (quality 0.85, en/whatsapp).",
+        "Bandit-adjusted P(dunning_nudge|needs_reauth)=0.33 from 6 outcomes.",
+        "Chose dunning_nudge: expected recovery \u20b91,618.03 = 0.33 \u00d7 \u20b94,999.",
+        "\u2192 dunning_nudge failed \u2014 template msg via whatsapp.",
+        "Timing model \u2192 best retry Sun 28 Jun 13:00 (P=0.04); soonest retry P=0.04.",
+        "Nudge belief for needs_reauth: P=0.32 (quality 0.85, en/whatsapp).",
+        "Bandit-adjusted P(dunning_nudge|needs_reauth)=0.33 from 7 outcomes.",
+        "Chose dunning_nudge: expected recovery \u20b91,543.76 = 0.33 \u00d7 \u20b94,999.",
+        "\u2192 dunning_nudge succeeded \u2014 template msg via whatsapp."
+      ]
+    }
+  ],
+  "holdout": {
+    "customers": 6000,
+    "failures": 9000,
+    "seed": 9999
+  },
+  "uplift": {
+    "vs_fixed_retry": {
+      "recovery_rate_abs": 0.206,
+      "recovery_rate_rel": 0.4378,
+      "revenue_recovered_delta_paise": 264419600
+    },
+    "vs_generic_dunning": {
+      "recovery_rate_abs": 0.1449,
+      "recovery_rate_rel": 0.2725,
+      "revenue_recovered_delta_paise": 179324600
+    }
+  }
+}

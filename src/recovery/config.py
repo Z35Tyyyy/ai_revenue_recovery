@@ -39,7 +39,7 @@ class Settings(BaseSettings):
 
     # Anthropic / Claude
     anthropic_api_key: str | None = Field(default=None, alias="ANTHROPIC_API_KEY")
-    llm_model: str = Field(default="claude-sonnet-5", alias="RECOVERY_LLM_MODEL")
+    llm_model: str = Field(default="claude-opus-5", alias="RECOVERY_LLM_MODEL")
 
     @property
     def razorpay_enabled(self) -> bool:
