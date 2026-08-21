@@ -1,10 +1,15 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { viteSingleFile } from "vite-plugin-singlefile";
 
-// Dev server proxies API calls to the FastAPI backend on :8000, so the dashboard
-// works out of the box with `make api` + `make frontend`.
+// VITE_SINGLEFILE=1 inlines everything into one self-contained index.html for a
+// static, serverless preview (used with VITE_HASH=1). Otherwise a normal build
+// served by FastAPI/Vite; the dev server proxies API calls to the backend.
+const single = process.env.VITE_SINGLEFILE === "1";
+
 export default defineConfig({
-  plugins: [react()],
+  base: single ? "./" : "/",
+  plugins: [react(), ...(single ? [viteSingleFile()] : [])],
   server: {
     port: 5173,
     proxy: {

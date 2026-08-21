@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { api, pct } from "../api.js";
 import { StatusPill } from "../components/primitives.jsx";
 import { actionLabel, classLabel } from "../lib/labels.js";
+import SAMPLE_CASES from "../lib/sampleCases.json";
 
 const FILTERS = [
   { key: "all", label: "All" },
@@ -15,10 +16,12 @@ export function Recoveries() {
   const [cases, setCases] = useState([]);
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState(null);
-  const [err, setErr] = useState(false);
 
   useEffect(() => {
-    api.cases({ limit: 80 }).then((r) => setCases(r.cases)).catch(() => setErr(true));
+    // Fall back to a baked sample so the page renders in the static preview / offline.
+    api.cases({ limit: 80 })
+      .then((r) => setCases(r.cases))
+      .catch(() => setCases(SAMPLE_CASES));
   }, []);
 
   const rows = filter === "all" ? cases : cases.filter((c) => c.status === filter);
@@ -42,10 +45,7 @@ export function Recoveries() {
         ))}
       </div>
 
-      {err ? (
-        <div className="soon">Start the API (<span className="mono">make api</span>) to load the recovery stream.</div>
-      ) : (
-        <div className="rec-list">
+      <div className="rec-list">
           <div className="rec-head">
             <span>Failure</span>
             <span>Amount</span>
@@ -68,7 +68,6 @@ export function Recoveries() {
             </div>
           ))}
         </div>
-      )}
 
       <AnimatePresence>
         {selected && <Drawer c={selected} onClose={() => setSelected(null)} />}

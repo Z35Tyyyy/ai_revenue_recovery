@@ -44,3 +44,4 @@ node_modules/
 .idea/
 .vscode/
 *.log
+frontend/dist-single/
