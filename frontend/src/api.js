@@ -34,6 +34,8 @@ export const api = {
     }),
   advanceClock: () => j("/api/scheduler/advance", { method: "POST" }),
   checkRecovery: () => j("/api/recovery/check", { method: "POST" }),
+  chaos: (llm, gateway) =>
+    j(`/api/chaos?llm=${!!llm}&gateway=${!!gateway}`, { method: "POST" }),
 };
 
 export function formatINR(paise) {

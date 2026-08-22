@@ -72,6 +72,17 @@ export function AgentConsole() {
     }
   };
 
+  const [chaos, setChaos] = useState({ llm: false, gateway: false });
+  const toggleChaos = async (key) => {
+    const next = { ...chaos, [key]: !chaos[key] };
+    setChaos(next);
+    try {
+      await api.chaos(next.llm, next.gateway);
+    } catch {
+      /* offline */
+    }
+  };
+
   useEffect(() => () => ctrlRef.current?.abort(), []);
 
   const set = (k) => (e) => {
@@ -176,6 +187,26 @@ export function AgentConsole() {
             </span>
           </label>
 
+          <div className="chaos">
+            <span className="chaos__label mono">Resilience test — force a dependency down:</span>
+            <div className="chaos__chips">
+              <button
+                type="button"
+                className={`chaos__chip ${chaos.llm ? "is-on" : ""}`}
+                onClick={() => toggleChaos("llm")}
+              >
+                {chaos.llm ? "◉" : "○"} LLM down
+              </button>
+              <button
+                type="button"
+                className={`chaos__chip ${chaos.gateway ? "is-on" : ""}`}
+                onClick={() => toggleChaos("gateway")}
+              >
+                {chaos.gateway ? "◉" : "○"} Gateway down
+              </button>
+            </div>
+          </div>
+
           <Button variant="primary" size="lg" onClick={run} disabled={busy} className="agent__go">
             {busy ? "Diagnosing…" : "Diagnose & plan"} <Icon name="bolt" size={16} />
           </Button>
@@ -236,6 +267,22 @@ export function AgentConsole() {
                     <div className="verdict__action verdict__action--neg">Stop — unrecoverable</div>
                   )}
                 </Card>
+
+                {result.resilience && (
+                  <Card className="resilience">
+                    <div className="agent__msg-head">
+                      <h3><Icon name="bolt" size={15} /> Graceful fallback engaged</h3>
+                      <Pill tone="warn">chaos</Pill>
+                    </div>
+                    {result.resilience.notes?.map((n, i) => (
+                      <p key={i} className="resilience__note">{n}</p>
+                    ))}
+                    <p className="resilience__ok">
+                      <Icon name="check" size={13} /> Recovery completed anyway — no single dependency
+                      can take the loop down.
+                    </p>
+                  </Card>
+                )}
 
                 {result.schedule && (
                   <Card className="agent__sched">

@@ -133,6 +133,12 @@ def recovery_check() -> dict:
     return get_service().check_recoveries()
 
 
+@app.post("/api/chaos", dependencies=[Depends(require_api_key)])
+def chaos(llm: bool | None = None, gateway: bool | None = None) -> dict:
+    """Toggle chaos switches (force LLM / gateway 'down') to demo graceful fallbacks."""
+    return get_service().set_chaos(llm=llm, gateway=gateway)
+
+
 @app.get("/api/campaign/stream")
 def campaign_stream(
     n: int = Query(default=100, ge=10, le=400),

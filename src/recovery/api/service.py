@@ -133,6 +133,9 @@ class RecoveryService:
         # Live generator (used for the interactive /api/plan demo); the warm-up
         # engine forces templates so startup stays fast and offline.
         self.dunning = DunningGenerator()
+        self._template_dunning = DunningGenerator(force_templates=True)  # chaos/LLM fallback
+        # Chaos switches — deliberately fail a dependency to demo graceful fallbacks.
+        self._chaos = {"llm": False, "gateway": False}
         self.gateway = get_gateway(self.settings)
         self.bandit = ContextualBandit(seed=self.settings.seed)
         # Durable store: reload the bandit's learned posteriors so learning survives
@@ -193,6 +196,7 @@ class RecoveryService:
             "persisted_cases": self.store.count_cases(),
             "recovered_cases": self.store.recovered_count(),
             "pending_jobs": self.store.pending_job_count(),
+            "chaos": dict(self._chaos),
             "has_holdout_eval": self._holdout is not None,
         }
 
@@ -286,8 +290,20 @@ class RecoveryService:
         payment_link = None
         message = None
         link_note = None
+        resilience = None
         if req.create_payment_link:
-            link = self._create_link_resilient(case)
+            chaos = self._chaos
+            notes: list[str] = []
+            # Gateway: chaos forces the real gateway "down" so the mock fallback shows.
+            if chaos["gateway"]:
+                desc = (
+                    f"Recover {format_inr(case.failure.amount_paise)} for "
+                    f"{case.subscription.plan_name} (case {case.id})"
+                )
+                link = MockGateway().create_payment_link(case, desc)
+                notes.append("Gateway forced DOWN → deterministic mock link used ✓")
+            else:
+                link = self._create_link_resilient(case)
             link_url = link.short_url if link else ""
             if link is not None:
                 payment_link = {
@@ -296,12 +312,14 @@ class RecoveryService:
                     "is_mock": link.is_mock,
                     "amount": format_inr(link.amount_paise),
                 }
-                if link.is_mock and self.gateway.live:
+                if link.is_mock and self.gateway.live and not chaos["gateway"]:
                     link_note = "Razorpay was unreachable — showing a mock link."
+            # LLM: chaos forces the template writer so a model outage still recovers.
+            dgen = self._template_dunning if chaos["llm"] else self.dunning
+            if chaos["llm"]:
+                notes.append("LLM forced DOWN → deterministic template message used ✓")
             try:
-                msg = self.dunning.generate(
-                    case, req.preferred_channel, req.language, link_url
-                )
+                msg = dgen.generate(case, req.preferred_channel, req.language, link_url)
                 message = {
                     "text": msg.text,
                     "language": msg.language.value,
@@ -311,12 +329,20 @@ class RecoveryService:
                 }
             except Exception:
                 logger.warning("dunning generation failed", exc_info=True)
+            if chaos["llm"] or chaos["gateway"]:
+                resilience = {
+                    "llm_down": chaos["llm"],
+                    "gateway_down": chaos["gateway"],
+                    "notes": notes,
+                }
 
         record = case_record(case, decision)
         record["payment_link"] = payment_link
         record["message"] = message
         if link_note:
             record["link_note"] = link_note
+        if resilience:
+            record["resilience"] = resilience
         # Durable + real: schedule the decided action (compliance-checked) and persist.
         if decision and decision.action_type != ActionType.GIVE_UP:
             record["schedule"] = self.scheduler.schedule(
@@ -428,6 +454,14 @@ class RecoveryService:
             "confirmed": confirmed,
             "recovered_total": self.store.recovered_count(),
         }
+
+    def set_chaos(self, llm: bool | None = None, gateway: bool | None = None) -> dict:
+        """Deliberately force a dependency 'down' to demo graceful fallbacks."""
+        if llm is not None:
+            self._chaos["llm"] = bool(llm)
+        if gateway is not None:
+            self._chaos["gateway"] = bool(gateway)
+        return dict(self._chaos)
 
     def handle_webhook(
         self, raw_body: bytes, signature: str | None, event_id: str | None = None

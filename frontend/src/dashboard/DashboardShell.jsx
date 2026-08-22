@@ -4,6 +4,7 @@ import { Sidebar } from "./Sidebar.jsx";
 import { Overview } from "./Overview.jsx";
 import { Live } from "./Live.jsx";
 import { Recoveries } from "./Recoveries.jsx";
+import { Exceptions } from "./Exceptions.jsx";
 import { AgentConsole } from "./AgentConsole.jsx";
 import { LearningConsole } from "./LearningConsole.jsx";
 import { Experiments } from "./Experiments.jsx";
@@ -12,9 +13,10 @@ import { ErrorBoundary, Pill } from "../components/ui.jsx";
 import { useHealth } from "../lib/useData.js";
 
 const TITLES = {
-  "/dashboard": "Overview",
+  "/dashboard": "Recovery Console",
   "/dashboard/live": "Live",
   "/dashboard/recoveries": "Recoveries",
+  "/dashboard/exceptions": "Exceptions",
   "/dashboard/agent": "Agent",
   "/dashboard/learning": "Learning",
   "/dashboard/experiments": "Experiments",
@@ -56,6 +58,7 @@ export default function DashboardShell() {
               <Route index element={<Overview />} />
               <Route path="live" element={<Live />} />
               <Route path="recoveries" element={<Recoveries />} />
+              <Route path="exceptions" element={<Exceptions />} />
               <Route path="agent" element={<AgentConsole />} />
               <Route path="learning" element={<LearningConsole />} />
               <Route path="experiments" element={<Experiments />} />
