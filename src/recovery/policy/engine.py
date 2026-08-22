@@ -52,17 +52,46 @@ _NUDGE_ACTION = {
     RecoverabilityClass.UNKNOWN: ActionType.DUNNING_NUDGE,
 }
 
+# Customer-facing message actions — used for the escalating anti-spam cost.
+_MESSAGE_TYPES = {
+    ActionType.DUNNING_NUDGE,
+    ActionType.REQUEST_CARD_UPDATE,
+    ActionType.OFFER_GRACE,
+    ActionType.SWITCH_METHOD,
+}
+
+
+def _retention_prob(case, base_prob: float) -> float:
+    """P(a recovered customer keeps paying rather than churning soon).
+
+    Rises with tenure (a stickiness proxy): a fresh customer sits near ``base_prob``,
+    a long-tenured one approaches ~0.9. This is what makes "they might cancel next
+    month" explicit — at P=0 a recovery is worth only the charge itself.
+    """
+    tenure = case.customer.tenure_months
+    lift = 0.5 / (1.0 + math.exp(-(tenure - 12) / 12.0))  # 0..0.5, ≈0.25 at tenure 12
+    return float(min(0.9, base_prob + lift))
+
 
 @dataclass
 class EngineConfig:
     max_steps: int = 4
     horizon_days: int = 14
     give_up_ev_ratio: float = 0.04    # stop if best action's EV < this fraction of amount
+    give_up_triage_floor: float = 0.06  # ML triage veto: stop if P(recover) below this
     delay_discount_days: float = 45.0  # rupees now are worth more than rupees later
     nudge_cost_paise: int = 200       # ~₹2 messaging cost, keeps the agent from spamming
     bandit_blend: float = 0.5         # max weight given to the bandit once it's confident
     bandit_confidence_k: float = 20.0
     expected_message_quality: float = 0.85  # belief used for EV (templates); Claude lifts it
+    # Optimise retained CUSTOMER VALUE, not just this charge. A recovery keeps the
+    # customer only PROBABILISTICALLY — they might still cancel next month — so we
+    # credit: charge + P(retained) × future billing cycles × charge. P(retained) rises
+    # with tenure (a stickiness proxy); if it were 0 (always cancels) the reward is just
+    # the charge. `retention_future_months` caps how far ahead we bet.
+    retention_future_months: float = 3.0
+    retention_base_prob: float = 0.4
+    annoyance_cost_paise: int = 150
 
 
 @dataclass
@@ -150,6 +179,13 @@ class RecoveryEngine:
     ) -> tuple[list[Candidate], list[str]]:
         cls = case.recoverability_class
         amount = case.failure.amount_paise
+        # Value a recovery as: this charge + EXPECTED retained future value. The
+        # customer stays only with probability r (higher for longer tenure); if they'd
+        # cancel next month (r→0) the reward collapses to just the charge.
+        r_prob = _retention_prob(case, self.config.retention_base_prob)
+        reward_base = amount + int(r_prob * self.config.retention_future_months * amount)
+        # Escalating annoyance cost: penalise each additional message this episode.
+        msgs_so_far = sum(1 for a in case.actions if a.type in _MESSAGE_TYPES)
         t0 = case.failure.occurred_at
         rationale: list[str] = []
         cands: list[Candidate] = []
@@ -161,7 +197,7 @@ class RecoveryEngine:
             f, c, s, now, attempt_number=attempt_number, horizon_days=self.config.horizon_days
         )
         p_opt = self._apply_bandit(cls, ActionType.RETRY_OPTIMAL, best.prob)
-        ev_opt = p_opt * amount * self._discount(best.when, t0)
+        ev_opt = p_opt * reward_base * self._discount(best.when, t0)
         cands.append(
             Candidate(ActionType.RETRY_OPTIMAL, p_opt, ev_opt, best.when, Channel.NONE,
                       attempt_number, f"retry @ {best.label}")
@@ -171,7 +207,7 @@ class RecoveryEngine:
         soon = self._soonest_slot(now)
         p_now = self.timing_model.score_slot(f, c, s, soon, attempt_number)
         p_now = self._apply_bandit(cls, ActionType.RETRY_NOW, p_now)
-        ev_now = p_now * amount * self._discount(soon, t0)
+        ev_now = p_now * reward_base * self._discount(soon, t0)
         cands.append(
             Candidate(ActionType.RETRY_NOW, p_now, ev_now, soon, Channel.NONE,
                       attempt_number, f"retry soon @ {soon:%d %b %H:%M}")
@@ -183,7 +219,9 @@ class RecoveryEngine:
         p_nudge_raw = self._nudge_prob(case, q)
         p_nudge = self._apply_bandit(cls, nudge_arm, p_nudge_raw)
         nudge_when = self._next_morning(now)
-        ev_nudge = p_nudge * amount * self._discount(nudge_when, t0) - self.config.nudge_cost_paise
+        ev_nudge = p_nudge * reward_base * self._discount(nudge_when, t0) - (
+            self.config.nudge_cost_paise + self.config.annoyance_cost_paise * msgs_so_far
+        )
         cands.append(
             Candidate(nudge_arm, p_nudge, ev_nudge, nudge_when, c.preferred_channel,
                       attempt_number, f"{nudge_arm.value} via {c.preferred_channel.value}")
@@ -205,6 +243,10 @@ class RecoveryEngine:
             f"Nudge belief for {cls.value}: P={p_nudge_raw:.2f} "
             f"(quality {q:.2f}, {c.language.value}/{c.preferred_channel.value})."
         )
+        rationale.append(
+            f"Valuing a recovery at {format_inr(reward_base)} = {format_inr(amount)} charge "
+            f"+ P(retained) {r_prob:.0%} × {self.config.retention_future_months:.0f} future cycles."
+        )
         if self.bandit is not None and self.bandit_observations(cls, top.action_type) > 0:
             n_obs = int(self.bandit_observations(cls, top.action_type))
             rationale.append(
@@ -216,13 +258,24 @@ class RecoveryEngine:
     def decide(self, case: RecoveryCase, now: datetime, attempt_number: int) -> Decision:
         cands, rationale = self._candidates(case, now, attempt_number)
         best = cands[0]
-        threshold = self.config.give_up_ev_ratio * case.failure.amount_paise
-        if best.action_type != ActionType.GIVE_UP and best.ev_paise < threshold:
+        triage = case.predicted_recover_prob
+        ev_threshold = self.config.give_up_ev_ratio * case.failure.amount_paise
+        give_up_reason: str | None = None
+        if best.action_type != ActionType.GIVE_UP:
+            # ML triage veto: don't spend on a case the recovery model deems near-dead.
+            if triage is not None and triage < self.config.give_up_triage_floor:
+                give_up_reason = (
+                    f"ML triage P(recover)={triage:.2f} < "
+                    f"{self.config.give_up_triage_floor:.2f} floor → give up (unrecoverable)."
+                )
+            elif best.ev_paise < ev_threshold:
+                give_up_reason = (
+                    f"Best expected value {format_inr(int(best.ev_paise))} < "
+                    f"{format_inr(int(ev_threshold))} floor → give up (unrecoverable)."
+                )
+        if give_up_reason is not None:
             best = next(c for c in cands if c.action_type == ActionType.GIVE_UP)
-            rationale.append(
-                f"Best expected value {format_inr(int(cands[0].ev_paise))} < "
-                f"{format_inr(int(threshold))} floor → give up (unrecoverable)."
-            )
+            rationale.append(give_up_reason)
         else:
             rationale.append(
                 f"Chose {best.action_type.value}: expected recovery "

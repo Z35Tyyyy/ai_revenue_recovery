@@ -9,11 +9,14 @@ API run anywhere. The interface is identical, so the engine never knows which is
 from __future__ import annotations
 
 import hashlib
+import logging
 from dataclasses import dataclass, field
 from typing import Protocol
 
 from recovery.config import Settings, get_settings
 from recovery.domain.models import Customer, RecoveryCase
+
+logger = logging.getLogger("recovery.razorpay")
 
 
 @dataclass
@@ -26,6 +29,14 @@ class PaymentLink:
     notes: dict = field(default_factory=dict)
 
 
+@dataclass
+class Subscription:
+    id: str
+    short_url: str
+    status: str = "created"
+    is_mock: bool = True
+
+
 class Gateway(Protocol):
     @property
     def live(self) -> bool: ...
@@ -35,6 +46,10 @@ class Gateway(Protocol):
     def create_payment_link(
         self, case: RecoveryCase, description: str
     ) -> PaymentLink: ...
+
+    def create_subscription(
+        self, customer: Customer, amount_paise: int, plan_name: str
+    ) -> Subscription: ...
 
 
 class MockGateway:
@@ -58,6 +73,12 @@ class MockGateway:
             is_mock=True,
             notes={"case_id": case.id, "reason": case.failure.reason_code},
         )
+
+    def create_subscription(
+        self, customer: Customer, amount_paise: int, plan_name: str
+    ) -> Subscription:
+        h = self._hash(customer.id, amount_paise, plan_name)
+        return Subscription(id=f"sub_MOCK{h}", short_url=f"https://rzp.io/i/submock{h[:8]}")
 
 
 class RazorpayGateway:
@@ -85,6 +106,10 @@ class RazorpayGateway:
 
     def create_payment_link(self, case: RecoveryCase, description: str) -> PaymentLink:
         cust = case.customer
+        # Only notify on channels where we actually have a real contact — never
+        # blast SMS/email to placeholder recipients.
+        has_email = bool(cust.email)
+        has_phone = bool(cust.phone)
         resp = self._client.payment_link.create(
             {
                 "amount": case.failure.amount_paise,
@@ -96,8 +121,8 @@ class RazorpayGateway:
                     "email": cust.email or "customer@example.in",
                     "contact": cust.phone or "+919000000000",
                 },
-                "notify": {"sms": True, "email": True},
-                "reminder_enable": True,
+                "notify": {"sms": has_phone, "email": has_email},
+                "reminder_enable": bool(has_email or has_phone),
                 "notes": {"case_id": case.id, "reason": case.failure.reason_code},
             }
         )
@@ -110,6 +135,34 @@ class RazorpayGateway:
             notes=resp.get("notes", {}),
         )
 
+    def create_subscription(
+        self, customer: Customer, amount_paise: int, plan_name: str
+    ) -> Subscription:
+        # Create a plan then a subscription — the real recurring-billing surface a
+        # recovery agent monitors via subscription.pending / halted webhooks.
+        plan = self._client.plan.create(
+            {
+                "period": "monthly",
+                "interval": 1,
+                "item": {"name": plan_name[:64], "amount": amount_paise, "currency": "INR"},
+            }
+        )
+        resp = self._client.subscription.create(
+            {
+                "plan_id": plan["id"],
+                "total_count": 12,
+                "quantity": 1,
+                "customer_notify": 1,
+                "notes": {"customer_id": customer.id},
+            }
+        )
+        return Subscription(
+            id=resp["id"],
+            short_url=resp.get("short_url", ""),
+            status=resp.get("status", "created"),
+            is_mock=False,
+        )
+
 
 def get_gateway(settings: Settings | None = None) -> Gateway:
     settings = settings or get_settings()
@@ -118,5 +171,8 @@ def get_gateway(settings: Settings | None = None) -> Gateway:
             return RazorpayGateway(settings)
         except Exception:
             # SDK missing or auth malformed — degrade to mock rather than crash.
+            logger.warning(
+                "Razorpay keys set but gateway init failed — using mock gateway", exc_info=True
+            )
             return MockGateway()
     return MockGateway()

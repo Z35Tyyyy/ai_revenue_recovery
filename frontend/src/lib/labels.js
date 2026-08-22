@@ -26,10 +26,17 @@ export const actionLabel = (a) => ACTION_LABEL[a] || a;
 export const classLabel = (c) => CLASS_LABEL[c] || c;
 
 // ordering used across the app
-export const POLICY_ORDER = ["no_action", "fixed_retry", "generic_dunning", "engine"];
+export const POLICY_ORDER = [
+  "no_action",
+  "fixed_retry",
+  "fixed_retry_14d",
+  "generic_dunning",
+  "engine",
+];
 export const POLICY_LABEL = {
   no_action: "No recovery",
   fixed_retry: "Fixed retry",
-  generic_dunning: "Retry + generic email",
+  fixed_retry_14d: "Fixed retry · 14d window",
+  generic_dunning: "Retry + generic dunning",
   engine: "AI Revenue Recovery",
 };

@@ -1,78 +1,102 @@
-import React, { useState } from "react";
-import { motion } from "framer-motion";
-import { Card } from "../components/primitives.jsx";
-import { Bar } from "../components/Bar.jsx";
-import { actionLabel, classLabel } from "../lib/labels.js";
+import React from "react";
+import { Card, Pill, Icon } from "../components/ui.jsx";
 import { useMetrics } from "../lib/useData.js";
+import { classLabel, actionLabel } from "../lib/labels.js";
+
+const CLASS_ORDER = [
+  "insufficient_funds", "soft_decline", "transient",
+  "needs_card_update", "needs_reauth", "hard_decline",
+];
+const ACTION_ORDER = [
+  "retry_optimal", "retry_now", "dunning_nudge",
+  "request_card_update", "switch_method", "offer_grace",
+];
 
 export function LearningConsole() {
-  const { metrics } = useMetrics();
-  const [cls, setCls] = useState(null);
-  if (!metrics) return <div className="soon">Loading…</div>;
+  const { metrics, loading } = useMetrics();
+  const bandit = metrics?.holdout?.bandit || {};
 
-  const bandit = metrics.holdout.bandit || {};
-  const byClassEng = metrics.holdout.policies.engine.by_class_rate || {};
-  const byClassFixed = metrics.holdout.policies.fixed_retry.by_class_rate || {};
-  // Most-informative classes first (more arms tried = a richer comparison).
-  const classes = Object.keys(bandit).sort(
-    (a, b) => Object.keys(bandit[b]).length - Object.keys(bandit[a]).length
+  if (loading) return <div className="dash__loading mono">loading policy…</div>;
+
+  const actions = ACTION_ORDER.filter((a) =>
+    Object.values(bandit).some((row) => row[a] != null)
   );
-  const active = cls && bandit[cls] ? cls : classes[0];
-  const arms = bandit[active] || {};
-  const ranked = Object.entries(arms).sort((a, b) => b[1] - a[1]);
-  const max = Math.max(0.01, ...ranked.map(([, v]) => v));
-  const [bestArm, bestRate] = ranked[0] || ["—", 0];
+  const classes = CLASS_ORDER.filter((c) => bandit[c]);
+  const allRates = classes.flatMap((c) => Object.values(bandit[c]));
+  const max = Math.max(...allRates, 0.01);
+
+  const bestOf = (c) => {
+    const e = Object.entries(bandit[c] || {}).sort((a, b) => b[1] - a[1])[0];
+    return e ? e[0] : null;
+  };
 
   return (
-    <div>
-      <div className="page-h">
-        <h1>Learning</h1>
-        <p>What the contextual bandit learned — the best intervention per failure class, from real outcomes.</p>
-      </div>
+    <div className="page">
+      <p className="page__lead">
+        A contextual bandit (Thompson sampling over class × action) corrects the model&rsquo;s
+        expected-value estimates from live outcomes. Warmer cells = higher observed success.
+      </p>
 
-      <div className="learn-tabs">
-        {classes.map((c) => (
-          <button key={c} className={`filter-chip ${c === active ? "active" : ""}`} onClick={() => setCls(c)}>
-            {classLabel(c)}
-          </button>
-        ))}
-      </div>
+      <Card className="matrix">
+        <div className="matrix__scroll">
+          <table className="matrix__table">
+            <thead>
+              <tr>
+                <th className="matrix__corner">Failure class</th>
+                {actions.map((a) => (
+                  <th key={a} className="matrix__ah">{actionLabel(a)}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {classes.map((c) => {
+                const best = bestOf(c);
+                return (
+                  <tr key={c}>
+                    <th className="matrix__rh">{classLabel(c)}</th>
+                    {actions.map((a) => {
+                      const v = bandit[c]?.[a];
+                      if (v == null) return <td key={a} className="matrix__cell matrix__cell--empty">·</td>;
+                      const intensity = 0.12 + (v / max) * 0.8;
+                      return (
+                        <td
+                          key={a}
+                          className={`matrix__cell ${a === best ? "matrix__cell--best" : ""}`}
+                          style={{ background: `rgba(79,224,160,${intensity.toFixed(2)})` }}
+                        >
+                          <span className="tnum">{(v * 100).toFixed(1)}</span>
+                          {a === best && <Icon name="check" size={11} />}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div className="matrix__legend mono">
+          <span>lower</span>
+          <span className="matrix__scale" />
+          <span>higher success · % recovered</span>
+        </div>
+      </Card>
 
-      <motion.div key={active} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-        <Card>
-          <div className="learn-headline">
-            <span className="lh-v">{(bestRate * 100).toFixed(0)}%</span>
-            <div>
-              <div className="lh-a">{actionLabel(bestArm)}</div>
-              <div className="lh-l">learned best action for {classLabel(active)}</div>
-            </div>
-          </div>
-
-          <div className="d-k" style={{ marginBottom: 12 }}>Success rate by action tried</div>
-          <div className="alt-list">
-            {ranked.map(([arm, rate], i) => (
-              <div className="alt-row" key={arm}>
-                <span className="aln" style={i === 0 ? { color: "var(--green-soft)", fontWeight: 550 } : null}>
-                  {actionLabel(arm)}
-                </span>
-                <div className="alt"><Bar value={rate} max={max} tone={i === 0 ? "green" : "blue"} delay={i * 0.06} /></div>
-                <span className="alv">{(rate * 100).toFixed(0)}%</span>
+      <div className="learn-cards">
+        {classes.map((c) => {
+          const best = bestOf(c);
+          const rate = bandit[c]?.[best];
+          return (
+            <Card key={c} className="learn-card" hover>
+              <div className="learn-card__cls">{classLabel(c)}</div>
+              <div className="learn-card__pick">
+                <Icon name="arrow" size={14} /> {actionLabel(best)}
               </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card style={{ marginTop: 16 }}>
-          <div className="d-k" style={{ marginBottom: 12 }}>Why it matters</div>
-          <p className="body" style={{ margin: 0, lineHeight: 1.6 }}>
-            A blind retry recovers <b style={{ color: "var(--text)" }}>{((byClassFixed[active] || 0) * 100).toFixed(0)}%</b> of{" "}
-            {classLabel(active).toLowerCase()} failures. By preferring{" "}
-            <b style={{ color: "var(--green-soft)" }}>{actionLabel(bestArm).toLowerCase()}</b>, the agent recovers{" "}
-            <b style={{ color: "var(--green-soft)" }}>{((byClassEng[active] || 0) * 100).toFixed(0)}%</b> — and it keeps
-            adjusting as new outcomes arrive.
-          </p>
-        </Card>
-      </motion.div>
+              <div className="learn-card__rate tnum">{(rate * 100).toFixed(1)}%</div>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }

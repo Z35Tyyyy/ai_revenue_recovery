@@ -4,12 +4,17 @@
 from __future__ import annotations
 
 import json
+import sys
 
 from rich.console import Console
 from rich.table import Table
 
 from recovery.config import get_settings
 from recovery.ml.train import train_all
+
+# Force UTF-8 output so rich never crashes on ✓/→/₹ on a legacy Windows console.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 console = Console()
 

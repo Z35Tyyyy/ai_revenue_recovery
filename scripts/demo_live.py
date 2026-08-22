@@ -13,6 +13,7 @@ agent's full reasoning trace is printed.
 from __future__ import annotations
 
 import argparse
+import sys
 
 from rich.console import Console
 from rich.panel import Panel
@@ -28,6 +29,10 @@ from recovery.policy.engine import RecoveryEngine
 from recovery.razorpay.client import get_gateway
 from recovery.razorpay.executor import RazorpayExecutor
 from recovery.simulation.generator import Population, generate_population
+
+# Force UTF-8 output so rich never crashes on ✓/→/₹ on a legacy Windows console.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 console = Console()
 

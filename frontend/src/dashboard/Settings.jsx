@@ -1,51 +1,90 @@
 import React from "react";
-import { Card } from "../components/primitives.jsx";
+import { Card, Pill, Icon } from "../components/ui.jsx";
 import { useHealth, useMetrics } from "../lib/useData.js";
 
-function Row({ k, v }) {
+function Cap({ label, on, value, tone, note }) {
   return (
-    <div className="set-row card">
-      <span className="sk">{k}</span>
-      <span className="sv">{v}</span>
-    </div>
+    <Card className="cap">
+      <div className="cap__top">
+        <span className="cap__label">{label}</span>
+        <span className={`cap__dot cap__dot--${on ? tone || "pos" : "off"}`} />
+      </div>
+      <div className="cap__value">{value}</div>
+      {note && <div className="cap__note">{note}</div>}
+    </Card>
   );
 }
 
 export function Settings() {
-  const health = useHealth();
+  const { health } = useHealth();
   const { metrics } = useMetrics();
-  const h = metrics?.holdout;
-  const hd = h?.holdout;
+  const hd = metrics?.holdout?.holdout || {};
+  const episodes = health?.sample_cases ?? metrics?.holdout?.sample_cases;
 
   return (
-    <div>
-      <div className="page-h">
-        <h1>Settings</h1>
-        <p>Engine capabilities and evaluation configuration.</p>
+    <div className="page">
+      <p className="page__lead">
+        Runtime capabilities and the reproducibility contract. The engine runs fully in simulation
+        with zero credentials; keys only enable the live path.
+      </p>
+
+      <div className="caps-grid">
+        <Cap
+          label="Razorpay gateway"
+          on={health?.razorpay_live}
+          tone="pos"
+          value={health?.razorpay_live ? "Live · test mode" : "Mock gateway"}
+          note={health?.razorpay_live ? "Creating real test-mode payment links" : "Deterministic offline stand-in"}
+        />
+        <Cap
+          label="Dunning author"
+          on={health?.llm_enabled}
+          tone="cool"
+          value={health?.llm_enabled ? `LLM · ${health.llm_provider}` : "Templates"}
+          note={health?.llm_enabled ? "Copy authored live; eval always uses templates" : "Deterministic multilingual templates"}
+        />
+        <Cap
+          label="Models"
+          on={health?.models_loaded}
+          tone="pos"
+          value={health?.models_loaded ? "Loaded" : "Not loaded"}
+          note="Recovery-probability + optimal-timing"
+        />
+        <Cap
+          label="Sample episodes"
+          on={episodes != null}
+          tone="pos"
+          value={episodes != null ? episodes.toLocaleString("en-IN") : "—"}
+          note="Pre-planned cases for the console"
+        />
       </div>
 
-      <div className="section-title">Capabilities</div>
-      <div className="set-grid">
-        <Row k="Razorpay" v={health?.razorpay_live ? "live test-mode" : "mock gateway"} />
-        <Row k="Dunning engine" v={health?.llm_enabled ? health.llm_provider : "templates"} />
-        <Row k="Models" v={health?.models_loaded ? "loaded" : "—"} />
-        <Row k="Warmed episodes" v={health?.sample_cases ?? "—"} />
-      </div>
+      <div className="page__cols">
+        <Card className="panel">
+          <div className="panel__head">
+            <h2>Held-out evaluation</h2>
+            <Pill tone="neutral">frozen</Pill>
+          </div>
+          <div className="kv">
+            <div className="kv__row"><span>Customers</span><span className="tnum">{(hd.customers ?? 6000).toLocaleString("en-IN")}</span></div>
+            <div className="kv__row"><span>Failed charges</span><span className="tnum">{(hd.failures ?? 9000).toLocaleString("en-IN")}</span></div>
+            <div className="kv__row"><span>Holdout seed</span><span className="mono">{hd.seed ?? 9999}</span></div>
+            <div className="kv__row"><span>Triage AUC</span><span className="tnum">{(metrics?.holdout?.engine_prediction_auc ?? 0.6644).toFixed(4)}</span></div>
+          </div>
+        </Card>
 
-      <div className="section-title" style={{ marginTop: 26 }}>Evaluation</div>
-      <div className="set-grid">
-        <Row k="Held-out eval" v={health?.has_holdout_eval ? "present" : "not run"} />
-        <Row k="Triage AUC" v={h ? h.engine_prediction_auc?.toFixed(3) : "—"} />
-        <Row k="Holdout size" v={hd ? `${hd.customers?.toLocaleString("en-IN")} cust · ${hd.failures?.toLocaleString("en-IN")} fails` : "—"} />
-        <Row k="Holdout seed" v={hd?.seed ?? "—"} />
-      </div>
-
-      <div className="soon" style={{ marginTop: 26, textAlign: "left", padding: "20px 22px" }}>
-        <div className="sd" style={{ margin: 0, maxWidth: "none" }}>
-          Configure providers in <span className="mono">.env</span> — <span className="mono">LLM_PROVIDER</span>{" "}
-          (anthropic / groq / openai) and <span className="mono">RAZORPAY_KEY_ID</span> for live test-mode links.
-          The evaluation always uses templates, so a key never changes the measured numbers.
-        </div>
+        <Card className="panel">
+          <div className="panel__head">
+            <h2>Reproducibility</h2>
+            <Pill tone="pos" icon>deterministic</Pill>
+          </div>
+          <ul className="repro">
+            <li><Icon name="check" size={15} /> Training seed 7, holdout seed 9999 — disjoint populations</li>
+            <li><Icon name="check" size={15} /> Every policy faces identical hidden latents</li>
+            <li><Icon name="check" size={15} /> ML &amp; policy never import the ground-truth environment</li>
+            <li><Icon name="check" size={15} /> Reproduce with <span className="mono">make eval</span></li>
+          </ul>
+        </Card>
       </div>
     </div>
   );

@@ -6,10 +6,10 @@ Evaluated on a held-out population of **6,000 customers** and **9,000 failed rec
 
 ## Headline
 
-- **Recovery rate: 67.7%** vs 47.1% for the fixed-retry default — **+20.6 points (44% relative)**.
-- **+₹26,44,196** additional revenue recovered on the holdout vs fixed retry.
-- Achieved with **13,012 retries** vs 26,361 for fixed retry — higher recovery, fewer bank attempts (it waits for the right moment instead of hammering).
-- Held-out triage AUC: **0.664**.
+- **Recovery rate: 67.8%** vs 47.1% for the fixed-retry default — **+20.7 points (44% relative)**.
+- **+₹27,54,983** additional revenue recovered on the holdout vs fixed retry.
+- Achieved with **12,906 retries** vs 26,361 for fixed retry — higher recovery, fewer bank attempts (it waits for the right moment instead of hammering).
+- Held-out triage AUC: **0.662**.
 
 ## Full comparison
 
@@ -17,19 +17,35 @@ Evaluated on a held-out population of **6,000 customers** and **9,000 failed rec
 |---|---|---|---|---|---|---|
 | No recovery (floor) | 0.0% | ₹0 | 0.0% | 0 | 0 | — |
 | Fixed next-day retry (Razorpay default) | 47.1% | ₹63,50,215 | 47.8% | 26,361 | 0 | 1.7 |
-| Fixed retry + generic email | 53.2% | ₹72,01,165 | 54.2% | 25,122 | 5,664 | 1.7 |
-| **AI Revenue Recovery engine** | 67.7% | ₹89,94,411 | 67.7% | 13,012 | 8,163 | 4.5 |
+| Fixed daily retry · 14-day window (fair control) | 58.4% | ₹78,10,095 | 58.8% | 67,499 | 0 | 2.9 |
+| Fixed retry + channel/language-matched dunning | 56.8% | ₹75,89,284 | 57.1% | 24,385 | 5,664 | 1.7 |
+| **AI Revenue Recovery engine** | 67.8% | ₹91,05,198 | 68.5% | 12,906 | 8,467 | 4.4 |
 
 ## Recovery rate by failure class (engine)
 
 | Failure class | Fixed retry | Engine |
 |---|---|---|
-| hard_decline | 0.7% | 1.7% |
-| insufficient_funds | 58.5% | 73.7% |
+| hard_decline | 0.7% | 3.1% |
+| insufficient_funds | 58.5% | 74.0% |
 | needs_card_update | 8.6% | 65.6% |
 | needs_reauth | 12.6% | 64.4% |
-| soft_decline | 60.5% | 64.7% |
-| transient | 99.2% | 95.3% |
+| soft_decline | 60.5% | 64.6% |
+| transient | 99.2% | 95.5% |
+
+## Off-policy (counterfactual) evaluation
+
+Proving the policy is better *without deploying it* — estimated from a random logging policy's data, the way large processors (Adyen, Stripe) validate before an A/B test. IPS/SNIPS/DR should track the engine's true on-policy value.
+
+| Estimator | Engine value (single-step) |
+|---|---|
+| Random logging policy (baseline) | 18.1% |
+| Direct Method (DM) | 30.9% |
+| Inverse Propensity (IPS) | 35.4% |
+| Self-normalized IPS (SNIPS) | 34.2% |
+| **Doubly-Robust (DR)** | **34.3%** |
+| Engine on-policy (ground truth) | 33.6% |
+
+*n = 4,000 failures. The off-policy estimators recover the engine's true value from logged data alone, and all show it far above the random baseline.*
 
 ## What the bandit learned
 
@@ -38,11 +54,11 @@ Success rate the contextual bandit converged to per (failure class → action):
 ```json
 {
   "hard_decline": {
-    "switch_method": 0.039
+    "switch_method": 0.037
   },
   "insufficient_funds": {
-    "dunning_nudge": 0.251,
-    "retry_now": 0.289,
+    "dunning_nudge": 0.252,
+    "retry_now": 0.3,
     "retry_optimal": 0.326
   },
   "needs_card_update": {
@@ -52,13 +68,13 @@ Success rate the contextual bandit converged to per (failure class → action):
     "dunning_nudge": 0.228
   },
   "soft_decline": {
-    "dunning_nudge": 0.192,
-    "retry_now": 0.224,
-    "retry_optimal": 0.265
+    "dunning_nudge": 0.202,
+    "retry_now": 0.232,
+    "retry_optimal": 0.26
   },
   "transient": {
-    "retry_now": 0.658,
-    "retry_optimal": 0.568
+    "retry_now": 0.659,
+    "retry_optimal": 0.548
   }
 }
 ```

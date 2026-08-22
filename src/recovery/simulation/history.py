@@ -56,6 +56,9 @@ def build_training_logs(
             )
             row = timing_feature_row(fail, cust, sub, at, attempt)
             row["label"] = int(env.resolve_retry(fail.id, at, attempt))
+            # Group key (non-feature): all probes of one failure must stay on the
+            # same side of the train/val split — they share identical case features.
+            row["failure_id"] = fail.id
             timing_rows.append(row)
 
         # --- case trajectory under the logging policy --------------------------
@@ -92,6 +95,9 @@ def build_training_logs(
         crow["attempts"] = attempts
         crow["days_to_recover"] = days_to_recover if days_to_recover is not None else np.nan
         crow["failure_id"] = fail.id
+        # Group key (non-feature): repeat-offender customers contribute multiple
+        # failures; keep a customer wholly on one side of the split.
+        crow["customer_id"] = fail.customer_id
         crow["amount_paise"] = fail.amount_paise
         case_rows.append(crow)
 

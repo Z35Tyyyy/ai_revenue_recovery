@@ -1,9 +1,12 @@
 """Service-level API tests (no disk models required — models are injected)."""
 
+import hashlib
+import hmac
 import json
 
 from recovery.api.schemas import PlanRequest
 from recovery.api.service import RecoveryService
+from recovery.config import get_settings
 
 
 def _service(trained_bundle, holdout):
@@ -37,7 +40,12 @@ def test_cases_stream_and_filter(trained_bundle, holdout):
 def test_interactive_plan_expired_card(trained_bundle, holdout):
     svc = _service(trained_bundle, holdout)
     rec = svc.plan(
-        PlanRequest(reason_code="card_expired", amount_paise=99900, language="hi")
+        PlanRequest(
+            reason_code="card_expired",
+            amount_paise=99900,
+            language="hi",
+            create_payment_link=True,
+        )
     )
     assert rec["decision"]["action"] in (
         "request_card_update",
@@ -49,22 +57,54 @@ def test_interactive_plan_expired_card(trained_bundle, holdout):
     assert rec["trace"]
 
 
-def test_webhook_ingestion(trained_bundle, holdout):
-    svc = _service(trained_bundle, holdout)
-    event = {
-        "event": "payment.failed",
-        "payload": {
-            "payment": {
-                "entity": {
-                    "id": "pay_WH1",
-                    "amount": 49900,
-                    "method": "upi",
-                    "error_reason": "insufficient_funds",
-                    "notes": {},
+def _failed_event() -> bytes:
+    return json.dumps(
+        {
+            "event": "payment.failed",
+            "payload": {
+                "payment": {
+                    "entity": {
+                        "id": "pay_WH1",
+                        "amount": 49900,
+                        "method": "upi",
+                        "error_reason": "insufficient_funds",
+                        "notes": {},
+                    }
                 }
-            }
-        },
-    }
-    out = svc.handle_webhook(json.dumps(event).encode(), signature=None)
+            },
+        }
+    ).encode()
+
+
+def test_webhook_unsigned_rejected(trained_bundle, holdout):
+    # No secret configured → fail CLOSED (503), never process an unsigned event.
+    svc = _service(trained_bundle, holdout)
+    out = svc.handle_webhook(_failed_event(), signature=None)
+    assert out["ok"] is False
+    assert out["status"] == 503
+
+
+def test_webhook_bad_signature_rejected(trained_bundle, holdout, monkeypatch):
+    monkeypatch.setenv("RAZORPAY_WEBHOOK_SECRET", "whsec_test")
+    get_settings.cache_clear()
+    svc = _service(trained_bundle, holdout)
+    out = svc.handle_webhook(_failed_event(), signature="deadbeef")
+    assert out["ok"] is False
+    assert out["status"] == 401
+
+
+def test_webhook_valid_signature_and_idempotency(trained_bundle, holdout, monkeypatch):
+    monkeypatch.setenv("RAZORPAY_WEBHOOK_SECRET", "whsec_test")
+    get_settings.cache_clear()
+    svc = _service(trained_bundle, holdout)
+    body = _failed_event()
+    sig = hmac.new(b"whsec_test", body, hashlib.sha256).hexdigest()
+
+    out = svc.handle_webhook(body, signature=sig, event_id="evt_1")
     assert out["ok"] and out["handled"]
     assert out["case"]["decision"]["action"]
+
+    # Replaying the same event id is a no-op (at-least-once delivery guard).
+    dup = svc.handle_webhook(body, signature=sig, event_id="evt_1")
+    assert dup["handled"] is False
+    assert dup["reason"] == "duplicate event"

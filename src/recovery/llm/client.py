@@ -14,8 +14,11 @@ core pipeline, the eval, or the tests depends on a live model.
 
 from __future__ import annotations
 
+import logging
+
 from recovery.config import get_settings
 
+logger = logging.getLogger("recovery.llm")
 _GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 
 
@@ -60,6 +63,7 @@ class LLMClient:
                     )
                     self._kind = "openai"
             except Exception:
+                logger.warning("LLM client init failed for provider %s", provider, exc_info=True)
                 self._client = None
         return self._client
 
@@ -92,4 +96,5 @@ class LLMClient:
             )
             return (resp.choices[0].message.content or "").strip()
         except Exception:
+            logger.warning("LLM completion failed (%s); using template", model, exc_info=True)
             return None

@@ -65,20 +65,41 @@ def _normalise_reason(entity: dict) -> str:
     return "unknown"
 
 
+# Events that mean "a recurring charge failed / needs recovery". `subscription.pending`
+# (retry in progress) and `subscription.halted` (retries exhausted) are the real
+# recovery trigger surface for recurring billing — not just raw `payment.failed`.
+_FAILURE_EVENTS = {"payment.failed", "subscription.pending", "subscription.halted"}
+# Events that mean "the customer paid" — used to close the recovery loop.
+_RECOVERY_EVENTS = {"payment.captured", "subscription.charged"}
+
+
+def is_recovery_confirmation(event: dict) -> str | None:
+    """Return the recovered payment/subscription id for a success event, else None."""
+    ev = event.get("event")
+    if ev not in _RECOVERY_EVENTS:
+        return None
+    payload = event.get("payload", {})
+    entity = payload.get("payment", {}).get("entity", {}) or payload.get(
+        "subscription", {}
+    ).get("entity", {})
+    return entity.get("id")
+
+
 def parse_failure_event(event: dict) -> FailureEvent | None:
-    """Turn a Razorpay ``payment.failed`` webhook into a :class:`FailureEvent`.
+    """Turn a Razorpay recovery-trigger webhook into a :class:`FailureEvent`.
 
-    Returns ``None`` for events we don't act on.
+    Handles ``payment.failed`` and the subscription lifecycle events
+    ``subscription.pending`` / ``subscription.halted``. Returns ``None`` otherwise.
     """
-    if event.get("event") != "payment.failed":
+    if event.get("event") not in _FAILURE_EVENTS:
         return None
-    entity = (
-        event.get("payload", {}).get("payment", {}).get("entity", {})
-    )
-    if not entity:
+    payload = event.get("payload", {})
+    entity = payload.get("payment", {}).get("entity", {})
+    sub_entity = payload.get("subscription", {}).get("entity", {})
+    if not entity and not sub_entity:
         return None
-
-    notes = entity.get("notes") or {}
+    # Prefer the failed payment's details; fall back to the subscription entity.
+    notes = entity.get("notes") or sub_entity.get("notes") or {}
     created = entity.get("created_at")
     occurred = (
         datetime.fromtimestamp(created, tz=timezone.utc)

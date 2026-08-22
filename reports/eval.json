@@ -40,55 +40,75 @@
         "transient": 0.9920079920079921
       }
     },
+    "fixed_retry_14d": {
+      "name": "fixed_retry_14d",
+      "total": 9000,
+      "recovered": 5255,
+      "recovery_rate": 0.5839,
+      "revenue_total_paise": 1328480000,
+      "revenue_recovered_paise": 781009500,
+      "revenue_recovery_rate": 0.5879,
+      "avg_days_to_recover": 2.87,
+      "retries": 67499,
+      "nudges": 0,
+      "by_class_rate": {
+        "hard_decline": 0.006550218340611353,
+        "insufficient_funds": 0.7698650674662668,
+        "needs_card_update": 0.13839285714285715,
+        "needs_reauth": 0.18776194467728416,
+        "soft_decline": 0.7658390410958904,
+        "transient": 0.998001998001998
+      }
+    },
     "generic_dunning": {
       "name": "generic_dunning",
       "total": 9000,
-      "recovered": 4785,
-      "recovery_rate": 0.5317,
+      "recovered": 5116,
+      "recovery_rate": 0.5684,
       "revenue_total_paise": 1328480000,
-      "revenue_recovered_paise": 720116500,
-      "revenue_recovery_rate": 0.5421,
+      "revenue_recovered_paise": 758928400,
+      "revenue_recovery_rate": 0.5713,
       "avg_days_to_recover": 1.73,
-      "retries": 25122,
+      "retries": 24385,
       "nudges": 5664,
       "by_class_rate": {
         "hard_decline": 0.028384279475982533,
-        "insufficient_funds": 0.6375562218890555,
-        "needs_card_update": 0.21875,
-        "needs_reauth": 0.23973176865046103,
-        "soft_decline": 0.6404109589041096,
-        "transient": 0.994005994005994
+        "insufficient_funds": 0.6705397301349325,
+        "needs_card_update": 0.2916666666666667,
+        "needs_reauth": 0.3176865046102263,
+        "soft_decline": 0.6622431506849316,
+        "transient": 0.995004995004995
       }
     },
     "engine": {
       "name": "engine",
       "total": 9000,
-      "recovered": 6089,
-      "recovery_rate": 0.6766,
+      "recovered": 6102,
+      "recovery_rate": 0.678,
       "revenue_total_paise": 1328480000,
-      "revenue_recovered_paise": 899441100,
-      "revenue_recovery_rate": 0.677,
-      "avg_days_to_recover": 4.54,
-      "retries": 13012,
-      "nudges": 8163,
+      "revenue_recovered_paise": 910519800,
+      "revenue_recovery_rate": 0.6854,
+      "avg_days_to_recover": 4.41,
+      "retries": 12906,
+      "nudges": 8467,
       "by_class_rate": {
-        "hard_decline": 0.017467248908296942,
-        "insufficient_funds": 0.737256371814093,
+        "hard_decline": 0.03056768558951965,
+        "insufficient_funds": 0.739880059970015,
         "needs_card_update": 0.6555059523809523,
         "needs_reauth": 0.6437552388935457,
-        "soft_decline": 0.646832191780822,
-        "transient": 0.9530469530469531
+        "soft_decline": 0.6459760273972602,
+        "transient": 0.955044955044955
       }
     }
   },
-  "engine_prediction_auc": 0.6644,
+  "engine_prediction_auc": 0.6623,
   "bandit": {
     "hard_decline": {
-      "switch_method": 0.039
+      "switch_method": 0.037
     },
     "insufficient_funds": {
-      "dunning_nudge": 0.251,
-      "retry_now": 0.289,
+      "dunning_nudge": 0.252,
+      "retry_now": 0.3,
       "retry_optimal": 0.326
     },
     "needs_card_update": {
@@ -98,13 +118,13 @@
       "dunning_nudge": 0.228
     },
     "soft_decline": {
-      "dunning_nudge": 0.192,
-      "retry_now": 0.224,
-      "retry_optimal": 0.265
+      "dunning_nudge": 0.202,
+      "retry_now": 0.232,
+      "retry_optimal": 0.26
     },
     "transient": {
-      "retry_now": 0.658,
-      "retry_optimal": 0.568
+      "retry_now": 0.659,
+      "retry_optimal": 0.548
     }
   },
   "sample_cases": [
@@ -121,7 +141,8 @@
         "Diagnosed 'insufficient_funds' \u2192 insufficient_funds (retry can help). Triage P(recover)=0.61.",
         "Timing model \u2192 best retry Sun 02 Aug 00:00 (P=0.60); soonest retry P=0.16.",
         "Nudge belief for insufficient_funds: P=0.27 (quality 0.85, hi/whatsapp).",
-        "Chose retry_optimal: expected recovery \u20b9890.37 = 0.60 \u00d7 \u20b91,999.",
+        "Valuing a recovery at \u20b96,204.95 = \u20b91,999 charge + P(retained) 70% \u00d7 3 future cycles.",
+        "Chose retry_optimal: expected recovery \u20b92,763.74 = 0.60 \u00d7 \u20b91,999.",
         "\u2192 retry_optimal succeeded \u2014 retry @ 02 Aug 00:00."
       ]
     },
@@ -138,12 +159,14 @@
         "Diagnosed 'authentication_failed' \u2192 needs_reauth (retry can help). Triage P(recover)=0.27.",
         "Timing model \u2192 best retry Sat 27 Jun 10:00 (P=0.05); soonest retry P=0.03.",
         "Nudge belief for needs_reauth: P=0.35 (quality 0.85, en/whatsapp).",
-        "Chose dunning_nudge: expected recovery \u20b9102.47 = 0.35 \u00d7 \u20b9299.",
+        "Valuing a recovery at \u20b91,063.53 = \u20b9299 charge + P(retained) 85% \u00d7 3 future cycles.",
+        "Chose dunning_nudge: expected recovery \u20b9369.59 = 0.35 \u00d7 \u20b9299.",
         "\u2192 dunning_nudge failed \u2014 template msg via whatsapp.",
         "Timing model \u2192 best retry Wed 01 Jul 13:00 (P=0.07); soonest retry P=0.04.",
         "Nudge belief for needs_reauth: P=0.35 (quality 0.85, en/whatsapp).",
+        "Valuing a recovery at \u20b91,063.53 = \u20b9299 charge + P(retained) 85% \u00d7 3 future cycles.",
         "Bandit-adjusted P(dunning_nudge|needs_reauth)=0.35 from 1 outcomes.",
-        "Chose dunning_nudge: expected recovery \u20b997.26 = 0.35 \u00d7 \u20b9299.",
+        "Chose dunning_nudge: expected recovery \u20b9349.56 = 0.35 \u00d7 \u20b9299.",
         "\u2192 dunning_nudge succeeded \u2014 template msg via whatsapp."
       ]
     },
@@ -160,8 +183,9 @@
         "Diagnosed 'insufficient_funds' \u2192 insufficient_funds (retry can help). Triage P(recover)=0.59.",
         "Timing model \u2192 best retry Tue 05 May 10:00 (P=0.63); soonest retry P=0.19.",
         "Nudge belief for insufficient_funds: P=0.22 (quality 0.85, hi/whatsapp).",
+        "Valuing a recovery at \u20b9801.68 = \u20b9299 charge + P(retained) 56% \u00d7 3 future cycles.",
         "Bandit-adjusted P(retry_optimal|insufficient_funds)=0.62 from 1 outcomes.",
-        "Chose retry_optimal: expected recovery \u20b9178.17 = 0.62 \u00d7 \u20b9299.",
+        "Chose retry_optimal: expected recovery \u20b9477.71 = 0.62 \u00d7 \u20b9299.",
         "\u2192 retry_optimal succeeded \u2014 retry @ 05 May 10:00."
       ]
     },
@@ -178,8 +202,9 @@
         "Diagnosed 'insufficient_funds' \u2192 insufficient_funds (retry can help). Triage P(recover)=0.65.",
         "Timing model \u2192 best retry Tue 07 Jul 00:00 (P=0.61); soonest retry P=0.18.",
         "Nudge belief for insufficient_funds: P=0.22 (quality 0.85, hi/whatsapp).",
+        "Valuing a recovery at \u20b9801.68 = \u20b9299 charge + P(retained) 56% \u00d7 3 future cycles.",
         "Bandit-adjusted P(retry_optimal|insufficient_funds)=0.62 from 2 outcomes.",
-        "Chose retry_optimal: expected recovery \u20b9151.39 = 0.62 \u00d7 \u20b9299.",
+        "Chose retry_optimal: expected recovery \u20b9405.93 = 0.62 \u00d7 \u20b9299.",
         "\u2192 retry_optimal succeeded \u2014 retry @ 07 Jul 00:00."
       ]
     },
@@ -196,23 +221,27 @@
         "Diagnosed 'mandate_paused' \u2192 needs_reauth (retry cannot help). Triage P(recover)=0.30.",
         "Timing model \u2192 best retry Thu 21 May 13:00 (P=0.05); soonest retry P=0.04.",
         "Nudge belief for needs_reauth: P=0.30 (quality 0.85, hinglish/whatsapp).",
+        "Valuing a recovery at \u20b93,130.55 = \u20b9999 charge + P(retained) 71% \u00d7 3 future cycles.",
         "Bandit-adjusted P(dunning_nudge|needs_reauth)=0.30 from 2 outcomes.",
-        "Chose dunning_nudge: expected recovery \u20b9289.28 = 0.30 \u00d7 \u20b9999.",
+        "Chose dunning_nudge: expected recovery \u20b9910.79 = 0.30 \u00d7 \u20b9999.",
         "\u2192 dunning_nudge failed \u2014 template msg via whatsapp.",
         "Timing model \u2192 best retry Thu 21 May 13:00 (P=0.05); soonest retry P=0.04.",
         "Nudge belief for needs_reauth: P=0.30 (quality 0.85, hinglish/whatsapp).",
+        "Valuing a recovery at \u20b93,130.55 = \u20b9999 charge + P(retained) 71% \u00d7 3 future cycles.",
         "Bandit-adjusted P(dunning_nudge|needs_reauth)=0.29 from 3 outcomes.",
-        "Chose dunning_nudge: expected recovery \u20b9267.32 = 0.29 \u00d7 \u20b9999.",
+        "Chose dunning_nudge: expected recovery \u20b9840.49 = 0.29 \u00d7 \u20b9999.",
         "\u2192 dunning_nudge failed \u2014 template msg via whatsapp.",
         "Timing model \u2192 best retry Wed 03 Jun 10:00 (P=0.04); soonest retry P=0.05.",
         "Nudge belief for needs_reauth: P=0.30 (quality 0.85, hinglish/whatsapp).",
+        "Valuing a recovery at \u20b93,130.55 = \u20b9999 charge + P(retained) 71% \u00d7 3 future cycles.",
         "Bandit-adjusted P(dunning_nudge|needs_reauth)=0.31 from 4 outcomes.",
-        "Chose dunning_nudge: expected recovery \u20b9271.57 = 0.31 \u00d7 \u20b9999.",
+        "Chose dunning_nudge: expected recovery \u20b9852.28 = 0.31 \u00d7 \u20b9999.",
         "\u2192 dunning_nudge failed \u2014 template msg via whatsapp.",
         "Timing model \u2192 best retry Fri 05 Jun 13:00 (P=0.05); soonest retry P=0.04.",
         "Nudge belief for needs_reauth: P=0.30 (quality 0.85, hinglish/whatsapp).",
+        "Valuing a recovery at \u20b93,130.55 = \u20b9999 charge + P(retained) 71% \u00d7 3 future cycles.",
         "Bandit-adjusted P(dunning_nudge|needs_reauth)=0.29 from 5 outcomes.",
-        "Chose dunning_nudge: expected recovery \u20b9244.63 = 0.29 \u00d7 \u20b9999.",
+        "Chose dunning_nudge: expected recovery \u20b9766.38 = 0.29 \u00d7 \u20b9999.",
         "\u2192 dunning_nudge succeeded \u2014 template msg via whatsapp."
       ]
     },
@@ -229,13 +258,15 @@
         "Diagnosed 'authentication_failed' \u2192 needs_reauth (retry can help). Triage P(recover)=0.37.",
         "Timing model \u2192 best retry Sun 14 Jun 10:00 (P=0.05); soonest retry P=0.03.",
         "Nudge belief for needs_reauth: P=0.32 (quality 0.85, en/whatsapp).",
+        "Valuing a recovery at \u20b916,600.11 = \u20b94,999 charge + P(retained) 77% \u00d7 3 future cycles.",
         "Bandit-adjusted P(dunning_nudge|needs_reauth)=0.33 from 6 outcomes.",
-        "Chose dunning_nudge: expected recovery \u20b91,618.03 = 0.33 \u00d7 \u20b94,999.",
+        "Chose dunning_nudge: expected recovery \u20b95,377.62 = 0.33 \u00d7 \u20b94,999.",
         "\u2192 dunning_nudge failed \u2014 template msg via whatsapp.",
         "Timing model \u2192 best retry Sun 28 Jun 13:00 (P=0.04); soonest retry P=0.04.",
         "Nudge belief for needs_reauth: P=0.32 (quality 0.85, en/whatsapp).",
+        "Valuing a recovery at \u20b916,600.11 = \u20b94,999 charge + P(retained) 77% \u00d7 3 future cycles.",
         "Bandit-adjusted P(dunning_nudge|needs_reauth)=0.33 from 7 outcomes.",
-        "Chose dunning_nudge: expected recovery \u20b91,543.76 = 0.33 \u00d7 \u20b94,999.",
+        "Chose dunning_nudge: expected recovery \u20b95,129.49 = 0.33 \u00d7 \u20b94,999.",
         "\u2192 dunning_nudge succeeded \u2014 template msg via whatsapp."
       ]
     }
@@ -247,14 +278,32 @@
   },
   "uplift": {
     "vs_fixed_retry": {
-      "recovery_rate_abs": 0.206,
-      "recovery_rate_rel": 0.4378,
-      "revenue_recovered_delta_paise": 264419600
+      "recovery_rate_abs": 0.2074,
+      "recovery_rate_rel": 0.4409,
+      "revenue_recovered_delta_paise": 275498300
     },
     "vs_generic_dunning": {
-      "recovery_rate_abs": 0.1449,
-      "recovery_rate_rel": 0.2725,
-      "revenue_recovered_delta_paise": 179324600
+      "recovery_rate_abs": 0.1096,
+      "recovery_rate_rel": 0.1927,
+      "revenue_recovered_delta_paise": 151591400
     }
+  },
+  "offpolicy": {
+    "logging_policy_value": 0.1807,
+    "engine_onpolicy_value": 0.3362,
+    "estimates": {
+      "direct_method": 0.3089,
+      "ips": 0.354,
+      "snips": 0.3417,
+      "doubly_robust": 0.3427
+    },
+    "n": 4000,
+    "action_space": [
+      "give_up",
+      "retry_now",
+      "retry_optimal",
+      "nudge"
+    ],
+    "note": "Single-step OPE of the engine's first action vs a uniform-random logging policy. IPS/SNIPS/DR estimate the engine's value from logged data alone; they should track engine_onpolicy_value."
   }
 }

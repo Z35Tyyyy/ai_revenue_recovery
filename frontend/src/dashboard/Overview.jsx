@@ -1,122 +1,140 @@
 import React from "react";
+import { Reveal, Counter, Card, Pill, Meter, Icon, stagger, fadeUp } from "../components/ui.jsx";
 import { motion } from "framer-motion";
-import { Card } from "../components/primitives.jsx";
-import { Counter } from "../components/Counter.jsx";
-import { Bar } from "../components/Bar.jsx";
-import { formatINR } from "../api.js";
-import { classLabel } from "../lib/labels.js";
 import { useMetrics } from "../lib/useData.js";
+import { formatINR } from "../api.js";
+import { POLICY_ORDER, POLICY_LABEL, classLabel } from "../lib/labels.js";
 
-function Funnel({ eng, fixed }) {
-  const N = eng.total || 9000;
-  const R = eng.recovered ?? Math.round(eng.recovery_rate * N);
-  const stages = [
-    { label: "Failed payments", count: N, w: 1, seg: "seg-total", val: `${N.toLocaleString("en-IN")}` },
-    { label: "Diagnosed & triaged", count: N, w: 1, seg: "seg-total", val: "100%" },
-    { label: "Action selected", count: N, w: 1, seg: "seg-base", val: "100%" },
-  ];
+const CLASS_ORDER = [
+  "needs_card_update", "needs_reauth", "insufficient_funds",
+  "soft_decline", "transient", "hard_decline",
+];
+
+function Kpi({ label, children, delta, deltaTone = "pos", sub }) {
   return (
-    <div className="funnel">
-      {stages.map((s, i) => (
-        <div className="fstage" key={s.label}>
-          <div className="fl">{s.label}</div>
-          <div className="fbar">
-            <motion.div
-              className={`fill ${s.seg}`}
-              initial={{ width: 0 }}
-              animate={{ width: `${s.w * 100}%` }}
-              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: i * 0.08 }}
-            />
-            <span className="val">{s.val}</span>
-          </div>
-        </div>
-      ))}
-      <div className="fstage">
-        <div className="fl">
-          Recovered
-          <span className="fc">{R.toLocaleString("en-IN")} of {N.toLocaleString("en-IN")}</span>
-        </div>
-        <div className="fbar">
-          <motion.div
-            className="fill seg-green"
-            initial={{ width: 0 }}
-            animate={{ width: `${eng.recovery_rate * 100}%` }}
-            transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.3 }}
-          />
-          <motion.div
-            className="fill seg-base"
-            initial={{ width: 0 }}
-            animate={{ width: `${fixed.recovery_rate * 100}%` }}
-            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.4 }}
-          />
-          <span className="val">{(eng.recovery_rate * 100).toFixed(1)}% recovered</span>
-        </div>
+    <Card className="kpi">
+      <div className="kpi__label">{label}</div>
+      <div className="kpi__value tnum">{children}</div>
+      <div className="kpi__foot">
+        {delta && <span className={`kpi__delta kpi__delta--${deltaTone}`}>{delta}</span>}
+        {sub && <span className="kpi__sub">{sub}</span>}
       </div>
-      <div className="row wrap" style={{ gap: 20, marginTop: 4, paddingLeft: 206 }}>
-        <span className="small"><span className="dot-lg" style={{ background: "#2f7ad0", marginRight: 7 }} />Recovered by retries ({(fixed.recovery_rate * 100).toFixed(0)}%)</span>
-        <span className="small"><span className="dot-lg" style={{ background: "var(--green)", marginRight: 7 }} />Added by the agent</span>
-      </div>
-    </div>
+    </Card>
   );
 }
 
 export function Overview() {
-  const { metrics } = useMetrics();
-  if (!metrics) return <div className="soon">Loading…</div>;
-  const p = metrics.holdout.policies;
-  const eng = p.engine, fixed = p.fixed_retry;
-  const rel = (metrics.holdout.uplift.vs_fixed_retry.recovery_rate_rel) * 100;
+  const { metrics, loading } = useMetrics();
+  const h = metrics?.holdout;
+  const eng = h?.policies?.engine;
+  const fixed = h?.policies?.fixed_retry;
+  const up = h?.uplift?.vs_fixed_retry;
+  const maxRate = Math.max(...POLICY_ORDER.map((p) => h?.policies?.[p]?.recovery_rate || 0), 0.01);
 
-  const classes = Object.keys(eng.by_class_rate).sort(
-    (a, b) => eng.by_class_rate[b] - eng.by_class_rate[a]
-  );
+  if (loading) return <div className="dash__loading mono">loading metrics…</div>;
 
   return (
-    <div>
-      <div className="page-h">
-        <h1>Overview</h1>
-        <p>Held-out performance across {(eng.total || 9000).toLocaleString("en-IN")} unseen failed charges.</p>
-      </div>
+    <div className="page">
+      <p className="page__lead">
+        The frozen holdout — <strong>{(eng?.total ?? 9000).toLocaleString("en-IN")}</strong> unseen
+        failed charges, the engine against the Razorpay default and generic dunning on identical
+        ground truth.
+      </p>
 
-      <div className="kpi-grid">
-        <Card className="kpi-card">
-          <div className="kpi-v green"><Counter value={eng.recovery_rate * 100} format={(n) => n.toFixed(1)} />%</div>
-          <div className="kpi-l">Recovery rate</div>
-        </Card>
-        <Card className="kpi-card">
-          <div className="kpi-v">{formatINR(eng.revenue_recovered_paise)}</div>
-          <div className="kpi-l">Revenue recovered</div>
-        </Card>
-        <Card className="kpi-card">
-          <div className="kpi-v">+<Counter value={rel} format={(n) => n.toFixed(0)} />%</div>
-          <div className="kpi-l">Relative uplift</div>
-        </Card>
-        <Card className="kpi-card">
-          <div className="kpi-v">{formatINR(eng.revenue_total_paise)}</div>
-          <div className="kpi-l">At risk</div>
-        </Card>
-      </div>
+      <motion.div
+        className="kpis"
+        variants={stagger(0.06)}
+        initial="hidden"
+        animate="show"
+      >
+        <motion.div variants={fadeUp}>
+          <Kpi
+            label="Recovery rate"
+            delta={`+${((up?.recovery_rate_abs ?? 0.206) * 100).toFixed(1)} pts`}
+            sub="vs fixed retry"
+          >
+            <Counter to={(eng?.recovery_rate ?? 0.677) * 100} format={(v) => v.toFixed(1)} />%
+          </Kpi>
+        </motion.div>
+        <motion.div variants={fadeUp}>
+          <Kpi
+            label="Revenue recovered"
+            delta={`+${formatINR(up?.revenue_recovered_delta_paise ?? 264419600)}`}
+            sub="over default"
+          >
+            {formatINR(eng?.revenue_recovered_paise ?? 89944110000)}
+          </Kpi>
+        </motion.div>
+        <motion.div variants={fadeUp}>
+          <Kpi
+            label="Retries used"
+            delta={`−${(((fixed?.retries ?? 26361) - (eng?.retries ?? 13012)) / 1000).toFixed(1)}k`}
+            sub={`vs ${(fixed?.retries ?? 26361).toLocaleString("en-IN")}`}
+          >
+            {(eng?.retries ?? 13012).toLocaleString("en-IN")}
+          </Kpi>
+        </motion.div>
+        <motion.div variants={fadeUp}>
+          <Kpi label="Triage AUC" deltaTone="cool" delta="held-out" sub="P(recover)">
+            <Counter to={h?.engine_prediction_auc ?? 0.6644} format={(v) => v.toFixed(3)} />
+          </Kpi>
+        </motion.div>
+      </motion.div>
 
-      <div style={{ marginTop: 26 }}>
-        <div className="section-title">Recovery funnel<span className="st-sub">from failure to reclaimed revenue</span></div>
-        <Card><Funnel eng={eng} fixed={fixed} /></Card>
-      </div>
-
-      <div style={{ marginTop: 26 }}>
-        <div className="section-title">Recovery by failure class<span className="st-sub">agent vs. fixed retry</span></div>
-        <Card>
-          <div className="bc-list">
-            {classes.map((c) => (
-              <div className="bc-row" key={c}>
-                <span className="bcn">{classLabel(c)}</span>
-                <div className="bct"><Bar value={eng.by_class_rate[c]} tone="green" /></div>
-                <span className="bcv">
-                  {((fixed.by_class_rate[c] || 0) * 100).toFixed(0)}% → <b>{(eng.by_class_rate[c] * 100).toFixed(0)}%</b>
-                </span>
-              </div>
-            ))}
+      <div className="page__cols">
+        <Reveal className="panel card" variants={fadeUp}>
+          <div className="panel__head">
+            <h2>Engine vs baselines</h2>
+            <Pill tone="neutral">recovery rate</Pill>
           </div>
-        </Card>
+          <div className="ladder">
+            {POLICY_ORDER.map((p) => {
+              const d = h?.policies?.[p];
+              if (!d) return null;
+              const win = p === "engine";
+              return (
+                <div key={p} className={`ladder__row ${win ? "ladder__row--win" : ""}`}>
+                  <span className="ladder__name">
+                    {POLICY_LABEL[p]} {win && <Icon name="bolt" size={12} />}
+                  </span>
+                  <span className="ladder__meter">
+                    <Meter value={d.recovery_rate / maxRate} tone={win ? "pos" : "neutral"} height={9} />
+                  </span>
+                  <span className="ladder__rate tnum">{(d.recovery_rate * 100).toFixed(1)}%</span>
+                </div>
+              );
+            })}
+          </div>
+        </Reveal>
+
+        <Reveal className="panel card" variants={fadeUp}>
+          <div className="panel__head">
+            <h2>Recovery by failure class</h2>
+            <span className="panel__legend">
+              <span className="dot dot--muted" /> fixed <span className="dot dot--pos" /> engine
+            </span>
+          </div>
+          <div className="byclass">
+            {CLASS_ORDER.map((c) => {
+              const f = fixed?.by_class_rate?.[c] ?? 0;
+              const e = eng?.by_class_rate?.[c] ?? 0;
+              return (
+                <div key={c} className="byclass__row">
+                  <span className="byclass__name">{classLabel(c)}</span>
+                  <span className="byclass__bars">
+                    <Meter value={f} tone="neutral" height={5} />
+                    <Meter value={e} tone="pos" height={5} />
+                  </span>
+                  <span className="byclass__pct tnum">
+                    <span className="byclass__pct-muted">{(f * 100).toFixed(0)}</span>
+                    <Icon name="arrow" size={11} />
+                    <span className="byclass__pct-pos">{(e * 100).toFixed(0)}%</span>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </Reveal>
       </div>
     </div>
   );

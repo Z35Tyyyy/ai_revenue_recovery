@@ -1,4 +1,4 @@
-.PHONY: help install simulate train eval api demo test lint clean frontend build-frontend serve all
+.PHONY: help install simulate train eval api demo test lint format format-check clean distclean frontend build-frontend serve all
 
 PY ?= python3
 PORT ?= 8000
@@ -20,7 +20,7 @@ help:
 	@echo "  make all             simulate + train + eval end-to-end"
 
 install:
-	$(PY) -m pip install -r requirements.txt
+	$(PY) -m pip install -r requirements.txt -r requirements-dev.txt
 	$(PY) -m pip install -e .
 
 simulate:
@@ -39,10 +39,16 @@ demo:
 	$(PY) scripts/demo_live.py
 
 test:
-	$(PY) -m pytest
+	$(PY) -m pytest --cov=recovery --cov-report=term-missing
 
 lint:
 	$(PY) -m ruff check src tests scripts
+
+format:
+	$(PY) -m ruff format src tests scripts
+
+format-check:
+	$(PY) -m ruff format --check src tests scripts
 
 frontend:
 	cd frontend && npm install && npm run dev
@@ -56,5 +62,10 @@ serve: build-frontend
 
 all: simulate train eval
 
+# Remove only regenerable intermediates. Committed artifacts (models/*.joblib,
+# reports/eval.json) are LEFT ALONE — use `make distclean` to wipe those too.
 clean:
-	rm -rf data/*.parquet data/*.csv data/*.jsonl models/*.joblib reports/*.png reports/*.json
+	rm -f data/population.json data/*.csv data/*.jsonl reports/*.png
+
+distclean: clean
+	rm -f models/*.joblib models/metrics.json reports/eval.json

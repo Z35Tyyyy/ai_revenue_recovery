@@ -45,6 +45,15 @@ class ContextualBandit:
         else:
             p[1] += 1.0
 
+    def export_ab(self) -> dict[tuple[str, str], list[float]]:
+        """Raw (context, arm) → [alpha, beta] posteriors, for durable persistence."""
+        return {k: list(v) for k, v in self._ab.items()}
+
+    def restore_ab(self, data: dict[tuple[str, str], list[float]]) -> None:
+        """Reload posteriors saved by :meth:`export_ab` (learning survives restart)."""
+        for (ctx, arm), (a, b) in data.items():
+            self._ab[(ctx, arm)] = [float(a), float(b)]
+
     def snapshot(self) -> dict[str, dict[str, float]]:
         """Learned success rate per (context, arm) — only arms actually tried.
 

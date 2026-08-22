@@ -1,75 +1,145 @@
-import React, { useRef } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Pipeline } from "../components/Pipeline.jsx";
-import { Eyebrow } from "../components/primitives.jsx";
+import { motion, useReducedMotion } from "framer-motion";
+import { Button, Counter, Icon } from "../components/ui.jsx";
+import { formatINR } from "../api.js";
 
-const STAGES = [
-  { label: "Payment", sub: "recurring charge attempted" },
-  { label: "Failure", sub: "the debit bounces" },
-  { label: "Agent", sub: "understands why" },
-  { label: "Decision", sub: "chooses the intervention" },
-  { label: "Recovery", sub: "revenue reclaimed" },
+const ROWS = [
+  { reason: "Card expired", amount: 49900, where: "Mumbai · hi", action: "Card update sent" },
+  { reason: "Insufficient funds", amount: 129900, where: "Pune · en", action: "Retried on payday" },
+  { reason: "Mandate paused", amount: 29900, where: "Chennai · ta", action: "Re-auth nudge" },
+  { reason: "Bank downtime", amount: 89900, where: "Delhi · hi", action: "Retried in 20m" },
+  { reason: "Do-not-honour", amount: 19900, where: "Jaipur · hi", action: "Retried optimally" },
 ];
 
-export function Hero() {
-  const ref = useRef(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
-  const y = useTransform(scrollYProgress, [0, 1], [0, -70]);
-  const opacity = useTransform(scrollYProgress, [0, 0.75], [1, 0]);
+function TickerRow({ row, recovered, i }) {
+  return (
+    <motion.div
+      className={`tick ${recovered ? "tick--won" : "tick--fail"}`}
+      layout
+      initial={false}
+    >
+      <span className="tick__status">
+        <span className="tick__dot" />
+        {recovered ? (
+          <motion.span
+            key="won"
+            initial={{ scale: 0.4, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            className="tick__check"
+          >
+            <Icon name="check" size={13} />
+          </motion.span>
+        ) : null}
+      </span>
+      <span className="tick__reason">{row.reason}</span>
+      <span className="tick__meta">{row.where}</span>
+      <span className="tick__amount tnum">{formatINR(row.amount)}</span>
+      <span className="tick__tag">{recovered ? row.action : "failed"}</span>
+    </motion.div>
+  );
+}
 
-  const toProblem = () =>
-    document.getElementById("problem")?.scrollIntoView({ behavior: "smooth" });
+function RecoveryTicker() {
+  const reduce = useReducedMotion();
+  const [n, setN] = useState(reduce ? ROWS.length : 0);
+
+  useEffect(() => {
+    if (reduce) return;
+    const id = setInterval(() => {
+      setN((prev) => (prev >= ROWS.length ? 0 : prev + 1));
+    }, 1500);
+    return () => clearInterval(id);
+  }, [reduce]);
+
+  const recoveredValue = ROWS.slice(0, n).reduce((s, r) => s + r.amount, 0);
 
   return (
-    <section className="hero" ref={ref}>
-      <div className="hero-atmos" />
-      <div className="hero-grid" />
-      <motion.div className="hero-inner container" style={{ y, opacity }}>
-        <div className="hero-copy">
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-            <Eyebrow>AI Revenue Recovery · for Razorpay</Eyebrow>
-          </motion.div>
-          <motion.h1
-            className="display"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.08 }}
-          >
-            Failed payments<br />shouldn't be the end.
-          </motion.h1>
-          <motion.p
-            className="lead"
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.18 }}
-          >
-            An agentic recovery engine that understands <em style={{ color: "var(--text)", fontStyle: "normal" }}>why</em> payments
-            fail, chooses the right intervention, and learns what actually works.
-          </motion.p>
-          <motion.div
-            className="hero-cta"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.28 }}
-          >
-            <button className="btn btn-primary btn-lg" onClick={toProblem}>Explore the engine ↓</button>
-            <Link to="/dashboard" className="btn btn-subtle btn-lg">View live dashboard →</Link>
-          </motion.div>
+    <div className="ticker card">
+      <div className="ticker__head">
+        <span className="eyebrow">Live recovery</span>
+        <span className="ticker__won tnum">
+          {formatINR(recoveredValue)} <span>won back</span>
+        </span>
+      </div>
+      <div className="ticker__rows">
+        {ROWS.map((row, i) => (
+          <TickerRow key={i} row={row} i={i} recovered={i < n} />
+        ))}
+      </div>
+      <div className="ticker__foot">
+        <span className="mono">payment.failed</span>
+        <Icon name="arrow" size={14} />
+        <span className="mono ticker__foot-pos">recovered</span>
+      </div>
+    </div>
+  );
+}
+
+export function Hero({ metrics }) {
+  const eng = metrics?.holdout?.policies?.engine;
+  const up = metrics?.holdout?.uplift?.vs_fixed_retry;
+  const rate = eng ? eng.recovery_rate * 100 : 67.7;
+  const rel = up ? up.recovery_rate_rel * 100 : 43.8;
+  const revenue = eng ? eng.revenue_recovered_paise : 89944110000;
+
+  return (
+    <section className="hero" id="top">
+      <div className="container hero__grid">
+        <div className="hero__copy">
+          <span className="eyebrow">Razorpay AI Buildathon · Track&nbsp;3</span>
+          <h1 className="hero__title">
+            Your customers
+            <br />
+            didn&rsquo;t leave.
+            <br />
+            <span className="hero__title-accent">The payment did.</span>
+          </h1>
+          <p className="hero__lede">
+            20–40% of recurring revenue is lost to <em>involuntary</em> churn — cards
+            that expired, funds that weren&rsquo;t there on debit day, mandates that
+            lapsed. An agentic engine that diagnoses every failure, predicts the right
+            moment, and wins the money back.
+          </p>
+
+          <div className="hero__cta">
+            <Button as={Link} to="/dashboard" variant="primary" size="lg">
+              Enter the console <Icon name="arrow" size={17} />
+            </Button>
+            <Button as="a" href="#problem" variant="quiet" size="lg">
+              See how it works
+            </Button>
+          </div>
+
+          <div className="hero__stats">
+            <div className="hero__stat">
+              <div className="hero__stat-val tnum">
+                <Counter to={rate} format={(v) => v.toFixed(1)} />%
+              </div>
+              <div className="hero__stat-lab">recovery rate</div>
+            </div>
+            <div className="hero__stat">
+              <div className="hero__stat-val tnum hero__stat-val--pos">
+                +<Counter to={rel} format={(v) => Math.round(v)} />%
+              </div>
+              <div className="hero__stat-lab">vs the default retry</div>
+            </div>
+            <div className="hero__stat">
+              <div className="hero__stat-val tnum">{formatINR(revenue)}</div>
+              <div className="hero__stat-lab">won back on holdout</div>
+            </div>
+          </div>
         </div>
-        <div className="hero-viz">
-          <Pipeline stages={STAGES} orientation="vertical" accentIndex={4} />
+
+        <div className="hero__visual">
+          <RecoveryTicker />
         </div>
-      </motion.div>
-      <motion.div
-        className="scroll-hint"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1, duration: 1 }}
-      >
-        <span>Scroll</span>
-        <motion.span animate={{ y: [0, 6, 0] }} transition={{ duration: 1.6, repeat: Infinity }}>↓</motion.span>
-      </motion.div>
+      </div>
+      <div className="hero__scrollcue" aria-hidden="true">
+        <span className="mono">scroll</span>
+        <span className="hero__scrollcue-line" />
+      </div>
     </section>
   );
 }

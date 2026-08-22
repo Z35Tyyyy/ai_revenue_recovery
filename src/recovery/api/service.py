@@ -5,11 +5,14 @@ warm the bandit and produce a live case stream, and answers the API's queries.
 from __future__ import annotations
 
 import json
+import logging
+from collections import OrderedDict
 from datetime import datetime, timezone
 
 from recovery.api.schemas import PlanRequest
 from recovery.config import Settings, get_settings
 from recovery.domain.models import (
+    ActionType,
     Customer,
     FailureEvent,
     RecoveryCase,
@@ -22,10 +25,14 @@ from recovery.llm.dunning import DunningGenerator
 from recovery.ml.models import RecoveryModel, TimingModel
 from recovery.policy.bandit import ContextualBandit
 from recovery.policy.engine import Decision, RecoveryEngine
-from recovery.razorpay.client import get_gateway
+from recovery.razorpay.client import MockGateway, get_gateway
 from recovery.razorpay.executor import RazorpayExecutor
 from recovery.razorpay.webhooks import parse_failure_event, verify_webhook_signature
+from recovery.scheduler import RetryScheduler
 from recovery.simulation.generator import Population, generate_population
+from recovery.store import RecoveryStore
+
+logger = logging.getLogger("recovery.api")
 
 
 def _action_dict(a) -> dict:
@@ -122,6 +129,13 @@ class RecoveryService:
         self.dunning = DunningGenerator()
         self.gateway = get_gateway(self.settings)
         self.bandit = ContextualBandit(seed=self.settings.seed)
+        # Durable store: reload the bandit's learned posteriors so learning survives
+        # restarts (the "Measure feeds back ↺" loop is only real if it persists).
+        self.store = RecoveryStore(self.settings.db_path)
+        saved = self.store.load_bandit()
+        if saved:
+            self.bandit.restore_ab(saved)
+        self.scheduler = RetryScheduler(self.store)
         self.engine = RecoveryEngine(
             self.recovery_model,
             self.timing_model,
@@ -129,7 +143,10 @@ class RecoveryService:
             bandit=self.bandit,
         )
         self._records: list[dict] = []
+        # Bounded set of processed webhook event ids (idempotency / replay guard).
+        self._seen_events: OrderedDict[str, bool] = OrderedDict()
         self._warm(sample_size)
+        self.store.save_bandit(self.bandit.export_ab())  # persist what warm-up learned
         self._holdout = self._load_holdout()
 
     # -- startup ------------------------------------------------------------- #
@@ -166,6 +183,8 @@ class RecoveryService:
             "llm_provider": self.settings.llm_provider if self.settings.llm_enabled else None,
             "models_loaded": True,
             "sample_cases": len(self._records),
+            "persisted_cases": self.store.count_cases(),
+            "pending_jobs": self.store.pending_job_count(),
             "has_holdout_eval": self._holdout is not None,
         }
 
@@ -258,42 +277,108 @@ class RecoveryService:
 
         payment_link = None
         message = None
+        link_note = None
         if req.create_payment_link:
-            executor = RazorpayExecutor(self.gateway)
-            link = executor.create_recovery_link(case)
-            msg = self.dunning.generate(
-                case, req.preferred_channel, req.language, link.short_url
-            )
-            payment_link = {
-                "id": link.id,
-                "short_url": link.short_url,
-                "is_mock": link.is_mock,
-                "amount": format_inr(link.amount_paise),
-            }
-            message = {
-                "text": msg.text,
-                "language": msg.language.value,
-                "channel": msg.channel.value,
-                "authored_by": msg.authored_by,
-                "subject": msg.subject,
-            }
+            link = self._create_link_resilient(case)
+            link_url = link.short_url if link else ""
+            if link is not None:
+                payment_link = {
+                    "id": link.id,
+                    "short_url": link.short_url,
+                    "is_mock": link.is_mock,
+                    "amount": format_inr(link.amount_paise),
+                }
+                if link.is_mock and self.gateway.live:
+                    link_note = "Razorpay was unreachable — showing a mock link."
+            try:
+                msg = self.dunning.generate(
+                    case, req.preferred_channel, req.language, link_url
+                )
+                message = {
+                    "text": msg.text,
+                    "language": msg.language.value,
+                    "channel": msg.channel.value,
+                    "authored_by": msg.authored_by,
+                    "subject": msg.subject,
+                }
+            except Exception:
+                logger.warning("dunning generation failed", exc_info=True)
 
         record = case_record(case, decision)
         record["payment_link"] = payment_link
         record["message"] = message
+        if link_note:
+            record["link_note"] = link_note
+        # Durable + real: schedule the decided action (compliance-checked) and persist.
+        if decision and decision.action_type != ActionType.GIVE_UP:
+            record["schedule"] = self.scheduler.schedule(
+                case.id,
+                decision.action_type,
+                req.method,
+                req.amount_paise,
+                decision.channel,
+                decision.when,
+                now,
+            )
+        self.store.save_case(record)
         return record
 
-    def handle_webhook(self, raw_body: bytes, signature: str | None) -> dict:
+    def _create_link_resilient(self, case: RecoveryCase):
+        """Create a payment link without ever raising. Retries once on a transient
+        gateway error, then falls back to a deterministic mock link — a Razorpay
+        hiccup must not fail the whole plan (previously surfaced as a 500)."""
+        executor = RazorpayExecutor(self.gateway)
+        for attempt in range(2):
+            try:
+                return executor.create_recovery_link(case)
+            except Exception:
+                logger.warning(
+                    "payment link creation failed (attempt %d/2)", attempt + 1, exc_info=True
+                )
+        try:
+            desc = (
+                f"Recover {format_inr(case.failure.amount_paise)} for "
+                f"{case.subscription.plan_name} (case {case.id})"
+            )
+            return MockGateway().create_payment_link(case, desc)
+        except Exception:
+            logger.warning("mock link fallback failed", exc_info=True)
+            return None
+
+    def handle_webhook(
+        self, raw_body: bytes, signature: str | None, event_id: str | None = None
+    ) -> dict:
         secret = self.settings.razorpay_webhook_secret
-        verified = False
-        if secret:
-            verified = verify_webhook_signature(raw_body, signature or "", secret)
-            if not verified:
-                return {"ok": False, "error": "invalid signature"}
+        # Fail CLOSED: never process an unsigned payment webhook unless explicitly
+        # allowed for local testing. The `status` key maps to an HTTP status code.
+        if not secret:
+            if not self.settings.allow_unsigned_webhooks:
+                return {
+                    "ok": False,
+                    "error": "webhook secret not configured",
+                    "status": 503,
+                }
+            verified = False
+        else:
+            if not verify_webhook_signature(raw_body, signature or "", secret):
+                return {"ok": False, "error": "invalid signature", "status": 401}
+            verified = True
+
         try:
             event = json.loads(raw_body.decode() or "{}")
         except Exception:
-            return {"ok": False, "error": "invalid json"}
+            return {"ok": False, "error": "invalid json", "status": 400}
+
+        # Idempotency / replay guard — Razorpay delivers at-least-once.
+        dedup_key = event_id or event.get("id") or event.get("payload", {}).get(
+            "payment", {}
+        ).get("entity", {}).get("id")
+        if dedup_key:
+            if dedup_key in self._seen_events:
+                return {"ok": True, "handled": False, "reason": "duplicate event"}
+            self._seen_events[dedup_key] = True
+            while len(self._seen_events) > 2048:
+                self._seen_events.popitem(last=False)
 
         failure = parse_failure_event(event)
         if failure is None:
@@ -315,11 +400,16 @@ class RecoveryService:
             id=f"case_{failure.id}", failure=failure, customer=customer, subscription=subscription
         )
         decision = self.engine.plan(case)
+        record = case_record(case, decision)
+        # Persist so inbound failures show up in the live case stream. Outward
+        # actions (links/notifications) are intentionally NOT auto-dispatched here.
+        self._records.insert(0, record)
+        del self._records[5000:]
         return {
             "ok": True,
             "handled": True,
             "signature_verified": verified,
-            "case": case_record(case, decision),
+            "case": record,
         }
 
 

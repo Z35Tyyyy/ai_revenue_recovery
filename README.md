@@ -70,10 +70,10 @@ For **every** failed recurring charge, an agent runs a closed decision loop:
 
 | Judging signal | How we hit it |
 |---|---|
-| *"Something real, measured on a held-out test set"* (the buildathon's stated bar) | Reproducible eval: engine vs. 3 baselines on a frozen holdout, reporting recovery rate, ₹ recovered, days-to-recover, and prediction AUC. |
-| Genuine AI, not a CRUD dunning tool | Trained ML for recovery-probability + optimal-timing, a learning bandit policy, and an LLM dunning writer — each carrying its weight. |
-| Defensible architecture | Webhook signature verification, idempotent case handling, decoupled diagnose/predict/decide/act stages, deterministic fallbacks everywhere. |
-| **India-native** (what a Stripe clone can't claim) | Salary-cycle-aware retry timing, UPI-autopay mandate handling, Hindi/English/regional dunning. |
+| *"Something real, measured on a held-out test set"* (the buildathon's stated bar) | Frozen holdout, engine vs. **4** fair baselines (incl. a window-matched retrier) — *and* an **off-policy (IPS / Doubly-Robust) evaluation** that proves the lift counterfactually from logged data, the way Adyen/Stripe validate before deploy. |
+| Genuine AI, not a CRUD dunning tool | Trained ML for recovery-probability + optimal-timing, a learning bandit (Thompson + a LinUCB contextual bandit), and an LLM dunning writer — each carrying its weight. |
+| Defensible architecture | **Fail-closed** signed webhooks, idempotent event handling, a **durable SQLite store** (cases + persisted learning), and a **scheduler that actually executes** the chosen retry/nudge at the compliant time. |
+| **India-native** (what a Stripe clone can't claim) | Salary-cycle-aware retry timing, UPI-autopay mandate handling, Hindi/regional dunning — **enforced** by a compliance layer (RBI 24h pre-debit notice, ₹15k AFA cap, TRAI DLT). |
 | Uses Razorpay's own platform | Test-mode Customers, Orders, Payment Links, and webhooks; recovers a **real** test payment live in the demo. |
 
 ## Architecture
@@ -83,13 +83,16 @@ src/recovery/
 ├── domain/        Pydantic models + Razorpay-grounded failure taxonomy
 ├── simulation/    Synthetic subscription population + recovery environment (ground truth)
 ├── ml/            Feature engineering, P(recover) + optimal-timing models, training
-├── policy/        Contextual-bandit action policy + the agentic orchestration loop
+├── policy/        EV orchestrator + Thompson bandit + LinUCB contextual bandit
 ├── llm/           Claude dunning-message generator (+ deterministic fallback)
-├── razorpay/      Test-mode gateway wrapper + webhook verification (+ mock)
-├── eval/          Baselines + held-out evaluation harness
-└── api/           FastAPI backend (webhooks, cases, metrics, live stream)
-frontend/          React/Vite analytics dashboard
-scripts/           generate_data · train_models · run_eval · demo_live
+├── razorpay/      Test-mode gateway + webhook verify (payments & subscriptions)
+├── eval/          Baselines + held-out harness + off-policy (IPS/DR) evaluation
+├── compliance.py  RBI e-mandate / UPI-Autopay / TRAI DLT guardrails
+├── store.py       SQLite: durable cases + persisted bandit + scheduled jobs
+├── scheduler.py   Executes retry/nudge jobs at the compliant time (closed loop)
+└── api/           FastAPI backend (webhooks, cases, metrics, live plan)
+frontend/          React/Vite operating console (dark, CRED-inspired)
+scripts/           generate_data · train_models · run_eval · robustness · demo_live
 ```
 
 ## Quickstart (development)
@@ -138,18 +141,28 @@ trained on), every policy facing the *identical* hidden ground truth:
 |---|---|---|---|
 | No recovery (floor) | 0.0% | ₹0 | 0 |
 | Fixed next-day retry *(Razorpay default)* | 47.1% | ₹63.5L | 26,361 |
-| Fixed retry + generic email | 53.2% | ₹72.0L | 25,122 |
-| **AI Revenue Recovery engine** | **67.7%** | **₹89.9L** | **13,012** |
+| Fixed daily retry · 14-day window *(fair control)* | 58.4% | ₹78.1L | 67,499 |
+| Fixed retry + channel/language-matched dunning | 56.8% | ₹75.9L | 24,385 |
+| **AI Revenue Recovery engine** | **67.8%** | **₹91.1L** | **12,906** |
 
-**+20.6 points (+44% relative) over the fixed-retry default, +₹26.4L recovered — with
-roughly half the bank retries.** It waits for the payday window instead of hammering,
-and wins biggest exactly where a blind retry is useless:
+**+20.7 points (+44% relative) over the fixed-retry default, +₹27.5L recovered — with
+roughly half the bank retries.** Crucially, it also beats a *window-matched* 14-day
+retrier (58.4%) while using **5× fewer retries** (12.9k vs 67.5k), and beats a
+*channel/language-matched* dunning baseline by +11.0 points — so the lift is genuine
+timing + action skill, not a longer window or a rigged baseline. It wins biggest
+exactly where a blind retry is useless:
 
 | Failure class | Fixed retry | Engine |
 |---|---|---|
 | Expired card (needs update) | 8.6% | **65.6%** |
 | Paused/revoked mandate (needs re-auth) | 12.6% | **64.4%** |
-| Insufficient funds | 58.5% | **73.7%** |
+| Insufficient funds | 58.5% | **74.0%** |
+
+**Proven counterfactually.** The lift isn't just an in-sim A/B — an off-policy
+evaluation estimates the engine's value from a *random logging policy's* logged data
+(the way Adyen/Stripe validate before deploying): Doubly-Robust **34.3%** and SNIPS
+**34.2%** track the true on-policy value **33.6%**, all far above the random baseline
+**18.1%**. See [`docs/RESULTS.md`](docs/RESULTS.md).
 
 ![Dashboard](docs/dashboard.png)
 

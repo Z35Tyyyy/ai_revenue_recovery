@@ -18,7 +18,13 @@ htmlcov/
 data/*.parquet
 data/*.csv
 data/*.jsonl
-data/population.json          # large; the API regenerates it on startup if absent
+# large; the API regenerates it on startup if absent
+data/population.json
+# SQLite durable store (regenerated at runtime) — gitignore has no inline comments
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
 reports/*.png
 reports/*.html
 !reports/.gitkeep
@@ -45,3 +51,7 @@ node_modules/
 .vscode/
 *.log
 frontend/dist-single/
+.claude/settings.local.json
+
+# Windows shell artifact (a `> NUL` redirect creates a real file in Git Bash)
+NUL

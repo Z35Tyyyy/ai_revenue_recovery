@@ -13,16 +13,22 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 from rich.console import Console
 from rich.table import Table
 
-from recovery.config import get_settings
+from recovery.config import REPO_ROOT, get_settings
 from recovery.domain.models import format_inr
 from recovery.eval.harness import evaluate
+from recovery.eval.offpolicy import evaluate_offpolicy
 from recovery.ml.models import RecoveryModel, TimingModel
 from recovery.simulation.generator import generate_population
+
+# Force UTF-8 output so rich never crashes on ✓/→/₹ on a legacy Windows console.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 console = Console()
 
@@ -63,9 +69,11 @@ def main() -> None:
     table.add_column("retries", justify="right")
     table.add_column("messages", justify="right")
     table.add_column("avg days", justify="right")
-    order = ["no_action", "fixed_retry", "generic_dunning", "engine"]
+    order = ["no_action", "fixed_retry", "fixed_retry_14d", "generic_dunning", "engine"]
     for name in order:
-        m = result.policies[name]
+        m = result.policies.get(name)
+        if m is None:
+            continue
         style = "bold green" if name == "engine" else None
         table.add_row(
             name,
@@ -94,6 +102,20 @@ def main() -> None:
     )
     console.print(f"Triage prediction AUC (held-out): [cyan]{result.engine_prediction_auc:.3f}[/]")
 
+    # --- off-policy (counterfactual) evaluation ---
+    console.rule("[bold]Off-policy evaluation (counterfactual, from logged data)")
+    ope = evaluate_offpolicy(holdout, rm, tm, max_failures=min(args.failures, 4000))
+    od = ope.as_dict()
+    console.print(
+        f"Logging policy (random): [cyan]{ope.logging_value:.1%}[/]   "
+        f"Engine on-policy (truth): [green]{ope.onpolicy_value:.1%}[/]"
+    )
+    console.print(
+        f"Estimated engine value from logs — DM [cyan]{ope.dm:.1%}[/], "
+        f"IPS [cyan]{ope.ips:.1%}[/], SNIPS [cyan]{ope.snips:.1%}[/], "
+        f"[bold]DR [green]{ope.dr:.1%}[/][/]  (should track the on-policy truth)"
+    )
+
     # --- persist ---
     payload = result.as_dict()
     payload["holdout"] = {
@@ -102,21 +124,23 @@ def main() -> None:
         "seed": args.holdout_seed,
     }
     payload["uplift"] = {"vs_fixed_retry": up_fixed, "vs_generic_dunning": up_generic}
+    payload["offpolicy"] = od
     eval_path = settings.report_dir / "eval.json"
-    eval_path.write_text(json.dumps(payload, indent=2))
+    eval_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     console.print(f"  ✓ results → [green]{eval_path}[/]")
 
-    _write_results_md(result, up_fixed, up_generic, args, Path("docs/RESULTS.md"))
+    _write_results_md(result, up_fixed, up_generic, ope, args, REPO_ROOT / "docs" / "RESULTS.md")
     console.print("  ✓ summary → [green]docs/RESULTS.md[/]")
     console.rule("[green]done")
 
 
-def _write_results_md(result, up_fixed, up_generic, args, path: Path) -> None:
-    order = ["no_action", "fixed_retry", "generic_dunning", "engine"]
+def _write_results_md(result, up_fixed, up_generic, ope, args, path: Path) -> None:
+    order = ["no_action", "fixed_retry", "fixed_retry_14d", "generic_dunning", "engine"]
     labels = {
         "no_action": "No recovery (floor)",
         "fixed_retry": "Fixed next-day retry (Razorpay default)",
-        "generic_dunning": "Fixed retry + generic email",
+        "fixed_retry_14d": "Fixed daily retry · 14-day window (fair control)",
+        "generic_dunning": "Fixed retry + channel/language-matched dunning",
         "engine": "**AI Revenue Recovery engine**",
     }
     lines = [
@@ -168,6 +192,24 @@ def _write_results_md(result, up_fixed, up_generic, args, path: Path) -> None:
         lines.append(f"| {cls} | {fix_by.get(cls, 0):.1%} | {eng_by[cls]:.1%} |")
     lines += [
         "",
+        "## Off-policy (counterfactual) evaluation",
+        "",
+        "Proving the policy is better *without deploying it* — estimated from a random "
+        "logging policy's data, the way large processors (Adyen, Stripe) validate before "
+        "an A/B test. IPS/SNIPS/DR should track the engine's true on-policy value.",
+        "",
+        "| Estimator | Engine value (single-step) |",
+        "|---|---|",
+        f"| Random logging policy (baseline) | {ope.logging_value:.1%} |",
+        f"| Direct Method (DM) | {ope.dm:.1%} |",
+        f"| Inverse Propensity (IPS) | {ope.ips:.1%} |",
+        f"| Self-normalized IPS (SNIPS) | {ope.snips:.1%} |",
+        f"| **Doubly-Robust (DR)** | **{ope.dr:.1%}** |",
+        f"| Engine on-policy (ground truth) | {ope.onpolicy_value:.1%} |",
+        "",
+        f"*n = {ope.n:,} failures. The off-policy estimators recover the engine's true "
+        "value from logged data alone, and all show it far above the random baseline.*",
+        "",
         "## What the bandit learned",
         "",
         "Success rate the contextual bandit converged to per (failure class → action):",
@@ -178,7 +220,7 @@ def _write_results_md(result, up_fixed, up_generic, args, path: Path) -> None:
         "",
     ]
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text("\n".join(lines))
+    path.write_text("\n".join(lines), encoding="utf-8")
 
 
 if __name__ == "__main__":

@@ -7,14 +7,15 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.concurrency import run_in_threadpool
 
 from recovery.api.schemas import PlanRequest
 from recovery.api.service import get_service
-from recovery.config import REPO_ROOT
+from recovery.config import REPO_ROOT, get_settings
 from recovery.domain.taxonomy import FAILURE_REASONS
 
 _DIST = REPO_ROOT / "frontend" / "dist"
@@ -32,12 +33,25 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+# Restrict CORS to the configured origins (default: the local dev + served origins).
+# Set RECOVERY_CORS_ORIGINS="*" to allow any origin.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
+    allow_origins=get_settings().cors_origin_list,
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
+
+
+def require_api_key(x_api_key: str | None = Header(default=None)) -> None:
+    """Guard mutating/costly endpoints when RECOVERY_API_KEY is configured.
+
+    Unset (the zero-config demo default) leaves the endpoint open.
+    """
+    key = get_settings().api_key
+    if key and x_api_key != key:
+        raise HTTPException(status_code=401, detail="invalid or missing API key")
 
 
 @app.get("/health")
@@ -52,8 +66,8 @@ def metrics() -> dict:
 
 @app.get("/api/cases")
 def cases(
-    limit: int = 50,
-    offset: int = 0,
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
     status: str | None = None,
     reason: str | None = None,
     klass: str | None = None,
@@ -79,7 +93,7 @@ def reasons() -> dict:
     }
 
 
-@app.post("/api/plan")
+@app.post("/api/plan", dependencies=[Depends(require_api_key)])
 def plan(req: PlanRequest) -> dict:
     return get_service().plan(req)
 
@@ -88,7 +102,15 @@ def plan(req: PlanRequest) -> dict:
 async def razorpay_webhook(request: Request) -> dict:
     raw = await request.body()
     signature = request.headers.get("X-Razorpay-Signature")
-    return get_service().handle_webhook(raw, signature)
+    event_id = request.headers.get("X-Razorpay-Event-Id")
+    # Offload the sync, CPU-bound handler (model inference) off the event loop.
+    result = await run_in_threadpool(
+        get_service().handle_webhook, raw, signature, event_id
+    )
+    status = result.pop("status", None)
+    if status:
+        raise HTTPException(status_code=status, detail=result.get("error", "error"))
+    return result
 
 
 # --------------------------------------------------------------------------- #

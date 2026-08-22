@@ -12,12 +12,18 @@ Runs with zero credentials. Fully seeded and reproducible.
 from __future__ import annotations
 
 import argparse
+import sys
 
 from rich.console import Console
 
 from recovery.config import get_settings
 from recovery.simulation.generator import generate_population
 from recovery.simulation.history import build_training_logs
+
+# Windows legacy consoles are cp1252 and make rich crash on ✓/→/₹. Force UTF-8
+# output (rich reads sys.stdout lazily), replacing anything unrenderable.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 console = Console()
 

@@ -20,8 +20,6 @@ from datetime import timedelta
 from sklearn.metrics import roc_auc_score
 
 from recovery.domain.models import (
-    Channel,
-    Language,
     RecoverabilityClass,
     RecoveryCase,
     format_inr,
@@ -178,8 +176,14 @@ def _fixed_retry(case: RecoveryCase, env: RecoveryEnvironment) -> CaseOutcome:
 
 
 def _generic_dunning(case: RecoveryCase, env: RecoveryEnvironment) -> CaseOutcome:
-    """Fixed retries + one generic English email at day 2 (quality 0.8)."""
+    """Fixed retries + one generic-copy dunning at day 2 (quality 0.8).
+
+    Fair baseline: the message goes on the customer's own preferred channel and
+    language (same as the engine), so the comparison measures the engine's *action
+    selection* — not a rigged English-email channel handicap.
+    """
     reason = classify_reason(case.failure.reason_code)
+    cust = case.customer
     t0 = case.failure.occurred_at
     schedule = [(1, "retry"), (2, "retry"), (2, "dunning"), (3, "retry"), (4, "retry")]
     retries = nudges = 0
@@ -191,7 +195,7 @@ def _generic_dunning(case: RecoveryCase, env: RecoveryEnvironment) -> CaseOutcom
         else:
             nudges += 1
             ok = env.resolve_dunning(
-                case.failure.id, Channel.EMAIL, Language.EN, 0.8, attempt_number=i
+                case.failure.id, cust.preferred_channel, cust.language, 0.8, attempt_number=i
             )
         if ok:
             return CaseOutcome(True, case.failure.amount_paise, float(day), retries, nudges,
@@ -199,6 +203,21 @@ def _generic_dunning(case: RecoveryCase, env: RecoveryEnvironment) -> CaseOutcom
     return CaseOutcome(
         False, case.failure.amount_paise, None, retries, nudges, reason.recoverability
     )
+
+
+def _fixed_retry_14d(case: RecoveryCase, env: RecoveryEnvironment) -> CaseOutcome:
+    """Window-matched control: naive daily retry over the SAME 14-day horizon the
+    engine is given — isolates genuine timing skill from mere window length."""
+    reason = classify_reason(case.failure.reason_code)
+    t0 = case.failure.occurred_at
+    retries = 0
+    for day in range(1, 15):
+        retries += 1
+        at = (t0 + timedelta(days=day)).replace(hour=_RETRY_HOUR, minute=0, second=0, microsecond=0)
+        if env.resolve_retry(case.failure.id, at, day):
+            return CaseOutcome(True, case.failure.amount_paise, float(day), retries, 0,
+                               reason.recoverability)
+    return CaseOutcome(False, case.failure.amount_paise, None, retries, 0, reason.recoverability)
 
 
 # --------------------------------------------------------------------------- #
@@ -216,6 +235,7 @@ def evaluate(
     baselines = {
         "no_action": _no_action,
         "fixed_retry": _fixed_retry,
+        "fixed_retry_14d": _fixed_retry_14d,
         "generic_dunning": _generic_dunning,
     }
     metrics = {name: PolicyMetrics(name=name) for name in [*baselines, "engine"]}

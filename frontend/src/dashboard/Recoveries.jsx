@@ -1,165 +1,264 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { api, pct } from "../api.js";
-import { StatusPill } from "../components/primitives.jsx";
-import { actionLabel, classLabel } from "../lib/labels.js";
-import SAMPLE_CASES from "../lib/sampleCases.json";
+import { Pill, Icon, Meter, CLASS_TONE, STATUS_TONE, ACTION_TONE } from "../components/ui.jsx";
+import { useCases } from "../lib/useData.js";
+import { formatINR } from "../api.js";
+import { classLabel, actionLabel } from "../lib/labels.js";
 
-const FILTERS = [
-  { key: "all", label: "All" },
-  { key: "recovered", label: "Recovered" },
-  { key: "halted", label: "Halted" },
-  { key: "gave_up", label: "Gave up" },
-];
+const STATUS_LABEL = { recovered: "recovered", halted: "halted", open: "open", gave_up: "gave up" };
 
-export function Recoveries() {
-  const [cases, setCases] = useState([]);
-  const [filter, setFilter] = useState("all");
-  const [selected, setSelected] = useState(null);
+function StatusDot({ recovered, status }) {
+  const tone = recovered ? "pos" : STATUS_TONE[status] || "neutral";
+  return <span className={`sdot sdot--${tone}`} aria-hidden="true" />;
+}
 
-  useEffect(() => {
-    // Fall back to a baked sample so the page renders in the static preview / offline.
-    api.cases({ limit: 80 })
-      .then((r) => setCases(r.cases))
-      .catch(() => setCases(SAMPLE_CASES));
-  }, []);
-
-  const rows = filter === "all" ? cases : cases.filter((c) => c.status === filter);
-
+function Row({ c, onOpen }) {
+  const ref = useRef(null);
   return (
-    <div>
-      <div className="page-h">
-        <h1>Recoveries</h1>
-        <p>Every failed charge the agent worked — click a row for its reasoning.</p>
-      </div>
-
-      <div className="rec-toolbar">
-        {FILTERS.map((f) => (
-          <button
-            key={f.key}
-            className={`filter-chip ${filter === f.key ? "active" : ""}`}
-            onClick={() => setFilter(f.key)}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="rec-list">
-          <div className="rec-head">
-            <span>Failure</span>
-            <span>Amount</span>
-            <span className="r-hide">Customer</span>
-            <span className="r-hide">Agent action</span>
-            <span className="r-hide">P</span>
-            <span>Status</span>
-          </div>
-          {rows.map((c) => (
-            <div className="rec-row" key={c.id} onClick={() => setSelected(c)}>
-              <div>
-                <div className="r-reason">{c.reason}</div>
-                <div className="r-sub">{classLabel(c.class)}</div>
-              </div>
-              <div className="r-amt">{c.amount}</div>
-              <div className="r-cell r-hide">{c.customer.city} · {c.customer.language}/{c.customer.channel}</div>
-              <div className="r-cell r-hide">{c.decision ? actionLabel(c.decision.action) : "—"}</div>
-              <div className="r-prob r-hide">{pct(c.predicted_recover_prob)}</div>
-              <div><StatusPill status={c.status} /></div>
-            </div>
-          ))}
-        </div>
-
-      <AnimatePresence>
-        {selected && <Drawer c={selected} onClose={() => setSelected(null)} />}
-      </AnimatePresence>
+    <div
+      ref={ref}
+      className="rec__row"
+      role="button"
+      tabIndex={0}
+      aria-label={`${classLabel(c.class)} · ${formatINR(c.amount_paise)} · ${c.recovered ? "recovered" : c.status}`}
+      onClick={() => onOpen(c, ref)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen(c, ref);
+        }
+      }}
+    >
+      <span className="rec__cell rec__status">
+        <StatusDot recovered={c.recovered} status={c.status} />
+      </span>
+      <span className="rec__cell rec__reason">
+        <span className="rec__reason-main mono">{c.reason}</span>
+        <span className="rec__reason-id mono">{c.id}</span>
+      </span>
+      <span className="rec__cell">
+        <Pill tone={CLASS_TONE[c.class] || "neutral"}>{classLabel(c.class)}</Pill>
+      </span>
+      <span className="rec__cell rec__cust mono">
+        {c.customer?.city} · {c.customer?.language}
+      </span>
+      <span className="rec__cell rec__amount tnum">{formatINR(c.amount_paise)}</span>
+      <span className="rec__cell rec__action">
+        {c.decision ? (
+          <span className={`rec__action-tag rec__action-tag--${ACTION_TONE[c.decision.action] || "neutral"}`}>
+            {actionLabel(c.decision.action)}
+          </span>
+        ) : (
+          <span className="rec__action-tag rec__action-tag--neg">stopped</span>
+        )}
+      </span>
+      <span className="rec__cell rec__chev">
+        <Icon name="arrow" size={14} />
+      </span>
     </div>
   );
 }
 
 function Drawer({ c, onClose }) {
-  const nudge = c.actions.find((a) => a.message);
-  const link = c.actions.find((a) => a.payment_link)?.payment_link;
-  return (
-    <>
-      <motion.div
-        className="drawer-overlay"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-      />
-      <motion.aside
-        className="drawer"
-        initial={{ x: "100%" }}
-        animate={{ x: 0 }}
-        exit={{ x: "100%" }}
-        transition={{ type: "spring", damping: 30, stiffness: 300 }}
-      >
-        <div className="drawer-head">
-          <div>
-            <div className="row" style={{ gap: 10 }}>
-              <span className="h3">{c.reason}</span>
-              <StatusPill status={c.status} />
-            </div>
-            <div className="small" style={{ marginTop: 4 }}>
-              {c.amount} · {classLabel(c.class)} · {c.customer.city} · {c.customer.language}/{c.customer.channel}
-            </div>
-          </div>
-          <button className="drawer-close" onClick={onClose}>✕</button>
-        </div>
-        <div className="drawer-body">
-          {c.decision && (
-            <div className="d-sec">
-              <div className="d-k">Decision</div>
-              <div className="row between">
-                <span className="h3" style={{ fontSize: "1.05rem" }}>{actionLabel(c.decision.action)}</span>
-                <span className="chip accent mono">{c.decision.action}</span>
-              </div>
-            </div>
-          )}
+  const panelRef = useRef(null);
+  useEffect(() => {
+    panelRef.current?.focus();
+    const onKey = (e) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [onClose]);
 
-          <div className="d-sec">
-            <div className="d-k">Reasoning trace</div>
-            <div className="trace-list">
-              {c.trace.map((t, i) => (
-                <div className="trace-item" key={i}>
-                  <span className="ti">{String(i + 1).padStart(2, "0")}</span>
-                  <span>{t}</span>
+  return (
+    <motion.div
+      className="drawer__scrim"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.aside
+        className="drawer card"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Recovery ${c.id}`}
+        tabIndex={-1}
+        ref={panelRef}
+        initial={{ x: 40, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        exit={{ x: 40, opacity: 0 }}
+        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="drawer__head">
+          <div>
+            <div className="drawer__eyebrow mono">{c.reason}</div>
+            <h2>{classLabel(c.class)}</h2>
+          </div>
+          <button className="drawer__close" onClick={onClose} aria-label="Close">
+            <Icon name="close" size={18} />
+          </button>
+        </header>
+
+        <div className="drawer__facts">
+          <div className="fact">
+            <span className="fact__k">Amount</span>
+            <span className="fact__v tnum">{formatINR(c.amount_paise)}</span>
+          </div>
+          <div className="fact">
+            <span className="fact__k">Outcome</span>
+            <span className="fact__v">
+              <Pill tone={c.recovered ? "pos" : STATUS_TONE[c.status] || "neutral"}>
+                {c.recovered ? "recovered" : STATUS_LABEL[c.status] || c.status}
+              </Pill>
+            </span>
+          </div>
+          <div className="fact">
+            <span className="fact__k">Triage P(recover)</span>
+            <span className="fact__v tnum">{((c.predicted_recover_prob ?? 0) * 100).toFixed(0)}%</span>
+          </div>
+          <div className="fact">
+            <span className="fact__k">Customer</span>
+            <span className="fact__v mono">
+              {c.customer?.city} · {c.customer?.language} · {c.customer?.tenure_months}mo
+            </span>
+          </div>
+        </div>
+
+        {c.decision && (
+          <div className="drawer__decision">
+            <span className="drawer__decision-lab">Chose</span>
+            <span className={`rec__action-tag rec__action-tag--${ACTION_TONE[c.decision.action] || "neutral"}`}>
+              {actionLabel(c.decision.action)}
+            </span>
+            {c.decision.prob != null && (
+              <span className="drawer__decision-p tnum">P={(c.decision.prob * 100).toFixed(0)}%</span>
+            )}
+          </div>
+        )}
+
+        {c.candidates?.length > 0 && (
+          <section className="drawer__section">
+            <h3>Considered</h3>
+            <div className="cands">
+              {c.candidates.map((cand, i) => (
+                <div key={i} className={`cand ${cand.action === c.decision?.action ? "cand--win" : ""}`}>
+                  <span className="cand__name">{actionLabel(cand.action)}</span>
+                  <Meter value={cand.prob} tone={cand.action === c.decision?.action ? "pos" : "neutral"} height={5} />
+                  <span className="cand__p tnum">{(cand.prob * 100).toFixed(0)}%</span>
                 </div>
               ))}
             </div>
-          </div>
+          </section>
+        )}
 
-          <div className="d-sec">
-            <div className="d-k">Actions taken</div>
-            <div className="row wrap" style={{ gap: 6 }}>
-              {c.actions.length === 0 && <span className="small">None — the agent stopped.</span>}
-              {c.actions.map((a, i) => (
-                <span key={i} className={`chip ${a.succeeded ? "good" : ""} mono`}>
-                  {a.type}{a.channel !== "none" ? ` · ${a.channel}` : ""}{a.succeeded ? " ✓" : ""}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {nudge?.message && (
-            <div className="d-sec">
-              <div className="d-k">Dunning message</div>
-              <div className="msg-box">
-                <div className="msg-meta">via {nudge.channel} · authored by {nudge.authored_by || "template"}</div>
-                {nudge.message}
-              </div>
-            </div>
-          )}
-
-          {link && (
-            <div className="d-sec">
-              <div className="d-k">Payment link</div>
-              <div className="link-box">{link}</div>
-            </div>
-          )}
-        </div>
+        <section className="drawer__section">
+          <h3>Reasoning trace</h3>
+          <ol className="trace">
+            {c.trace?.map((t, i) => (
+              <li key={i} className="trace__line">
+                <span className="trace__n mono">{String(i + 1).padStart(2, "0")}</span>
+                <span className="trace__t">{t}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
       </motion.aside>
-    </>
+    </motion.div>
+  );
+}
+
+const FILTERS = [
+  { k: "all", label: "All" },
+  { k: "recovered", label: "Recovered" },
+  { k: "open", label: "In progress" },
+  { k: "gave_up", label: "Stopped" },
+];
+
+export function Recoveries() {
+  const { cases, total, live, loading } = useCases({ limit: 200 });
+  const [filter, setFilter] = useState("all");
+  const [q, setQ] = useState("");
+  const [selected, setSelected] = useState(null);
+  const triggerRef = useRef(null);
+
+  const open = (c, ref) => {
+    triggerRef.current = ref?.current || null;
+    setSelected(c);
+  };
+  const close = () => {
+    setSelected(null);
+    triggerRef.current?.focus();
+  };
+
+  const rows = useMemo(() => {
+    let r = cases || [];
+    if (filter === "recovered") r = r.filter((c) => c.recovered);
+    else if (filter === "open") r = r.filter((c) => !c.recovered && c.status !== "gave_up");
+    else if (filter === "gave_up") r = r.filter((c) => c.status === "gave_up");
+    if (q.trim()) {
+      const s = q.toLowerCase();
+      r = r.filter((c) => c.reason.toLowerCase().includes(s) || c.id.toLowerCase().includes(s) || classLabel(c.class).toLowerCase().includes(s));
+    }
+    return r;
+  }, [cases, filter, q]);
+
+  if (loading) return <div className="dash__loading mono">loading cases…</div>;
+
+  return (
+    <div className="page">
+      <p className="page__lead">
+        Every decision the engine made, as an explainable log — click a row for the full reasoning
+        trace. {!live && <span className="page__note">Showing sample episodes (API offline).</span>}
+      </p>
+
+      <div className="rec__toolbar">
+        <div className="chips" role="tablist" aria-label="Filter recoveries">
+          {FILTERS.map((f) => (
+            <button
+              key={f.k}
+              role="tab"
+              aria-selected={filter === f.k}
+              className={`chip ${filter === f.k ? "is-active" : ""}`}
+              onClick={() => setFilter(f.k)}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <input
+          className="rec__search"
+          placeholder="Search reason, class, id…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          aria-label="Search recoveries"
+        />
+      </div>
+
+      <div className="rec card">
+        <div className="rec__row rec__row--head" aria-hidden="true">
+          <span className="rec__cell" />
+          <span className="rec__cell">Failure</span>
+          <span className="rec__cell">Class</span>
+          <span className="rec__cell">Customer</span>
+          <span className="rec__cell rec__amount">Amount</span>
+          <span className="rec__cell">Decision</span>
+          <span className="rec__cell" />
+        </div>
+        {rows.length === 0 && <div className="rec__empty mono">no cases match</div>}
+        {rows.map((c) => (
+          <Row key={c.id} c={c} onOpen={open} />
+        ))}
+      </div>
+      <div className="rec__count mono">
+        {rows.length} of {total} cases
+      </div>
+
+      <AnimatePresence>{selected && <Drawer c={selected} onClose={close} />}</AnimatePresence>
+    </div>
   );
 }

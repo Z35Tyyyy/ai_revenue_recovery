@@ -1,71 +1,204 @@
-* { box-sizing: border-box; }
-* { -webkit-tap-highlight-color: transparent; }
+/* ============================================================================
+   Base — reset, typography, global chrome
+   ========================================================================== */
 
-html { scroll-behavior: smooth; }
-html, body, #root { height: 100%; }
-
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font-sans);
-  font-feature-settings: "cv11", "ss01";
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-  line-height: 1.5;
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
-::selection { background: rgba(51, 149, 255, 0.28); }
+* {
+  margin: 0;
+}
 
-a { color: inherit; text-decoration: none; }
-button { font-family: inherit; }
-
-/* thin, quiet scrollbars */
-* { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
-*::-webkit-scrollbar { width: 9px; height: 9px; }
-*::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 999px; }
-*::-webkit-scrollbar-track { background: transparent; }
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+  color-scheme: dark;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
-  *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  html {
+    scroll-behavior: auto;
+  }
 }
 
-/* --- typography scale --- */
-.display {
-  font-size: clamp(2.6rem, 6vw, 5rem);
-  line-height: 1.02;
-  letter-spacing: -0.03em;
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  font-size: var(--fs-body);
+  line-height: 1.55;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "ss01", "cv01";
+  overflow-x: hidden;
+}
+
+/* Global grain + ambient light — sits above the canvas, below content. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 80% at 50% -10%, rgba(79, 224, 160, 0.05), transparent 60%),
+    radial-gradient(90% 60% at 100% 0%, rgba(139, 147, 255, 0.04), transparent 55%);
+}
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: var(--grain);
+  background-size: 140px 140px;
+  opacity: 0.028;
+  mix-blend-mode: screen;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
+}
+
+img,
+svg,
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+/* ---- Headings ---- */
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
   font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
 }
-.h1 { font-size: clamp(2rem, 4.4vw, 3.4rem); line-height: 1.06; letter-spacing: -0.025em; font-weight: 600; }
-.h2 { font-size: clamp(1.5rem, 3vw, 2.2rem); line-height: 1.1; letter-spacing: -0.02em; font-weight: 600; }
-.h3 { font-size: 1.15rem; line-height: 1.25; letter-spacing: -0.01em; font-weight: 600; }
-.lead { font-size: clamp(1.05rem, 1.6vw, 1.35rem); line-height: 1.55; color: var(--text-dim); font-weight: 400; }
-.body { font-size: 0.975rem; color: var(--text-dim); }
-.small { font-size: 0.85rem; color: var(--text-muted); }
-.mono { font-family: var(--font-mono); font-feature-settings: normal; }
-.tnum { font-variant-numeric: tabular-nums; }
 
-.gradient-text {
-  background: var(--grad-text);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+/* ---- Numeric ---- */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "ss01";
 }
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Selection & focus ---- */
+::selection {
+  background: rgba(79, 224, 160, 0.24);
+  color: #fff;
+}
+
+:focus-visible {
+  outline: 2px solid var(--pos);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ---- Scrollbars ---- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-3) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: var(--r-full);
+  border: 3px solid var(--bg);
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--surface-hi);
+}
+
+/* ---- Layout helpers ---- */
+.container {
+  width: 100%;
+  max-width: var(--maxw);
+  margin-inline: auto;
+  padding-inline: clamp(20px, 5vw, 40px);
+}
+
 .eyebrow {
-  font-size: 0.78rem;
-  letter-spacing: 0.14em;
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: var(--text-muted);
-  font-weight: 600;
+  color: var(--text-3);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+}
+.eyebrow::before {
+  content: "";
+  width: 18px;
+  height: 1px;
+  background: var(--line-3);
+}
+.eyebrow.pos {
+  color: var(--pos);
+}
+.eyebrow.pos::before {
+  background: var(--pos-line);
+}
+.eyebrow.neg {
+  color: var(--neg);
+}
+.eyebrow.neg::before {
+  background: var(--neg-line);
 }
 
-/* --- layout helpers --- */
-.container { width: 100%; max-width: var(--maxw); margin-inline: auto; padding-inline: var(--gutter); }
-.stack { display: flex; flex-direction: column; }
-.row { display: flex; align-items: center; }
-.between { display: flex; align-items: center; justify-content: space-between; }
-.wrap { flex-wrap: wrap; }
-.grow { flex: 1; }
-.center { display: grid; place-items: center; }
+.route-fallback {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  letter-spacing: 0.1em;
+}
+
+/* Reduced-motion: neutralize CSS animation/transition globally.
+   (framer-motion is separately gated via useReducedMotion in JS.) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
