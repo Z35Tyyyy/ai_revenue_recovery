@@ -46,6 +46,8 @@ export function AgentConsole() {
   const [error, setError] = useState(null);
   const [ff, setFf] = useState(null);
   const [ffBusy, setFfBusy] = useState(false);
+  const [poll, setPoll] = useState(null);
+  const [pollBusy, setPollBusy] = useState(false);
   const ctrlRef = useRef(null);
 
   const fastForward = async () => {
@@ -56,6 +58,17 @@ export function AgentConsole() {
       /* offline */
     } finally {
       setFfBusy(false);
+    }
+  };
+
+  const checkPayment = async () => {
+    setPollBusy(true);
+    try {
+      setPoll(await api.checkRecovery());
+    } catch {
+      /* offline */
+    } finally {
+      setPollBusy(false);
     }
   };
 
@@ -277,6 +290,20 @@ export function AgentConsole() {
                       </a>
                     )}
                     {result?.link_note && <p className="agent__msg-note">{result.link_note}</p>}
+                    {link && (
+                      <div className="agent__poll">
+                        <button className="agent__ff-btn" onClick={checkPayment} disabled={pollBusy}>
+                          <Icon name="check" size={13} />{" "}
+                          {pollBusy ? "Checking Razorpay…" : "Check for payment"}
+                        </button>
+                        {poll && (
+                          <span className="agent__ff-res">
+                            polled {poll.checked} ·{" "}
+                            <strong className="tnum">{poll.confirmed}</strong> confirmed paid
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </Card>
                 )}
 

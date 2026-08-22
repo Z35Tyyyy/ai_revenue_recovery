@@ -129,6 +129,24 @@ def test_confirm_recovery_marks_case(trained_bundle, holdout):
     assert svc.store.recovered_count() >= 1
 
 
+def test_check_recoveries_polls_and_confirms(trained_bundle, holdout):
+    svc = _service(trained_bundle, holdout)
+    # a case with a REAL (non-mock) payment link, not yet recovered
+    svc.store.save_case(
+        {
+            "id": "case_poll",
+            "class": "insufficient_funds",
+            "recovered": False,
+            "amount_paise": 49900,
+            "decision": {"action": "retry_optimal", "prob": 0.5},
+            "payment_link": {"id": "plink_X", "is_mock": False, "short_url": "http://x"},
+        }
+    )
+    out = svc.check_recoveries()  # mock gateway reports the link 'paid'
+    assert out["checked"] >= 1 and out["confirmed"] >= 1
+    assert svc.store.get_case("case_poll")["recovered"] is True
+
+
 def test_webhook_recovery_confirmation_closes_the_loop(trained_bundle, holdout, monkeypatch):
     monkeypatch.setenv("RAZORPAY_WEBHOOK_SECRET", "whsec_test")
     get_settings.cache_clear()

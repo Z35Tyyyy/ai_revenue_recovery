@@ -33,6 +33,7 @@ export const api = {
       signal,
     }),
   advanceClock: () => j("/api/scheduler/advance", { method: "POST" }),
+  checkRecovery: () => j("/api/recovery/check", { method: "POST" }),
 };
 
 export function formatINR(paise) {

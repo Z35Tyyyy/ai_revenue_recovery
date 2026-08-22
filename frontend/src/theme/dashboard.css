@@ -693,6 +693,13 @@ select.input {
 .agent__ff-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .agent__ff-res { font-size: var(--fs-xs); color: var(--text-3); }
 .agent__ff-res strong { color: var(--pos); }
+.agent__poll {
+  margin-top: var(--s-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  align-items: flex-start;
+}
 
 .agent__result { min-width: 0; }
 .agent__empty {

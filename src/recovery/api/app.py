@@ -127,6 +127,12 @@ def scheduler_advance() -> dict:
     return get_service().fire_due_jobs(fire_all=True)
 
 
+@app.post("/api/recovery/check", dependencies=[Depends(require_api_key)])
+def recovery_check() -> dict:
+    """Poll Razorpay for open cases with a real payment link; close any that were paid."""
+    return get_service().check_recoveries()
+
+
 @app.get("/api/campaign/stream")
 def campaign_stream(
     n: int = Query(default=100, ge=10, le=400),

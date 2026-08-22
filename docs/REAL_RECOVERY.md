@@ -10,11 +10,32 @@ the app already:
 - A background scheduler tick (`POST /api/scheduler/advance`, and an in-process loop)
   fires jobs whose time has come.
 
-To close the loop with **real Razorpay events** — the undeniable version — expose the
-webhook to the internet and let Razorpay drive it. All the code exists; these are the
-manual, account-side steps.
+To close the loop with **real Razorpay data**, there are two options.
 
-## 1. Expose the local API
+---
+
+## Option A — Poll (no tunnel, works with just your test keys) ✅
+
+This needs nothing but the Razorpay keys already in `.env` — no public URL.
+
+1. **Agent** page → set **Method** to Card/UPI, toggle **"Create real payment link"** on,
+   and **Diagnose**. The engine creates a *real* test-mode Payment Link (a `rzp.io/...`
+   URL) with the case id embedded in its `notes`.
+2. Open that link in a browser and **pay it in Razorpay test mode** (test card
+   `4111 1111 1111 1111`, any future expiry/CVV).
+3. Click **"Check for payment"** under the link (or `POST /api/recovery/check`). The app
+   **polls Razorpay** for the link's status; a `paid` status calls `confirm_recovery()`,
+   marks the case recovered (`source: "razorpay_poll"`), and the bandit learns from the
+   real outcome. The loop is closed with live Razorpay data.
+
+---
+
+## Option B — Real-time webhook (Razorpay pushes to you; needs a tunnel)
+
+The "undeniable, real-time" version — Razorpay calls your webhook the instant a payment
+succeeds. It needs a public URL, so install a tunnel first.
+
+### 1. Expose the local API
 
 The API listens on `:8000`. Give Razorpay a public URL with a tunnel:
 

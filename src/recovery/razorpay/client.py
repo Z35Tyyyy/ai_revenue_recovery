@@ -51,6 +51,8 @@ class Gateway(Protocol):
         self, customer: Customer, amount_paise: int, plan_name: str
     ) -> Subscription: ...
 
+    def fetch_payment_link_status(self, link_id: str) -> str: ...
+
 
 class MockGateway:
     """Deterministic, offline stand-in for the Razorpay API."""
@@ -79,6 +81,9 @@ class MockGateway:
     ) -> Subscription:
         h = self._hash(customer.id, amount_paise, plan_name)
         return Subscription(id=f"sub_MOCK{h}", short_url=f"https://rzp.io/i/submock{h[:8]}")
+
+    def fetch_payment_link_status(self, link_id: str) -> str:
+        return "paid"  # mock link is treated as paid so the demo loop closes
 
 
 class RazorpayGateway:
@@ -162,6 +167,15 @@ class RazorpayGateway:
             status=resp.get("status", "created"),
             is_mock=False,
         )
+
+    def fetch_payment_link_status(self, link_id: str) -> str:
+        """Poll Razorpay for a link's status ('created' | 'paid' | 'cancelled' | …).
+
+        This is how the loop closes with real Razorpay data WITHOUT an inbound webhook:
+        the customer pays the link, we poll, and a 'paid' status confirms the recovery.
+        """
+        resp = self._client.payment_link.fetch(link_id)
+        return resp.get("status", "unknown")
 
 
 def get_gateway(settings: Settings | None = None) -> Gateway:

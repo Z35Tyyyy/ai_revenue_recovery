@@ -404,6 +404,31 @@ class RecoveryService:
         self.store.save_bandit(self.bandit.export_ab())
         return True
 
+    def check_recoveries(self) -> dict:
+        """Poll Razorpay for open cases with a REAL payment link and close any that were
+        paid. Closes the loop with live Razorpay data without an inbound webhook — the
+        customer pays the link, we poll, a 'paid' status confirms the recovery."""
+        checked = confirmed = 0
+        for rec in self.store.list_cases(limit=200):
+            if rec.get("recovered"):
+                continue
+            pl = rec.get("payment_link") or {}
+            if pl.get("is_mock") or not pl.get("id"):
+                continue
+            checked += 1
+            try:
+                status = self.gateway.fetch_payment_link_status(pl["id"])
+            except Exception:
+                logger.warning("payment-link poll failed for %s", pl.get("id"), exc_info=True)
+                continue
+            if status == "paid" and self.confirm_recovery(rec["id"], source="razorpay_poll"):
+                confirmed += 1
+        return {
+            "checked": checked,
+            "confirmed": confirmed,
+            "recovered_total": self.store.recovered_count(),
+        }
+
     def handle_webhook(
         self, raw_body: bytes, signature: str | None, event_id: str | None = None
     ) -> dict:
