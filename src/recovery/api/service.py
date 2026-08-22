@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import logging
+import random
 from collections import OrderedDict
 from datetime import datetime, timezone
 
@@ -15,6 +16,7 @@ from recovery.domain.models import (
     ActionType,
     Customer,
     FailureEvent,
+    RecoverabilityClass,
     RecoveryCase,
     Subscription,
     format_inr,
@@ -27,7 +29,11 @@ from recovery.policy.bandit import ContextualBandit
 from recovery.policy.engine import Decision, RecoveryEngine
 from recovery.razorpay.client import MockGateway, get_gateway
 from recovery.razorpay.executor import RazorpayExecutor
-from recovery.razorpay.webhooks import parse_failure_event, verify_webhook_signature
+from recovery.razorpay.webhooks import (
+    is_recovery_confirmation,
+    parse_failure_event,
+    verify_webhook_signature,
+)
 from recovery.scheduler import RetryScheduler
 from recovery.simulation.generator import Population, generate_population
 from recovery.store import RecoveryStore
@@ -136,6 +142,7 @@ class RecoveryService:
         if saved:
             self.bandit.restore_ab(saved)
         self.scheduler = RetryScheduler(self.store)
+        self._rng = random.Random(self.settings.seed)  # noqa: S311 (demo confirmations)
         self.engine = RecoveryEngine(
             self.recovery_model,
             self.timing_model,
@@ -184,6 +191,7 @@ class RecoveryService:
             "models_loaded": True,
             "sample_cases": len(self._records),
             "persisted_cases": self.store.count_cases(),
+            "recovered_cases": self.store.recovered_count(),
             "pending_jobs": self.store.pending_job_count(),
             "has_holdout_eval": self._holdout is not None,
         }
@@ -261,7 +269,7 @@ class RecoveryService:
             method=req.method,
         )
         failure = FailureEvent(
-            id=f"fail_interactive_{int(now.timestamp())}",
+            id=f"fail_interactive_{int(now.timestamp() * 1_000_000)}",
             subscription_id=subscription.id,
             customer_id=customer.id,
             occurred_at=now,
@@ -345,6 +353,57 @@ class RecoveryService:
             logger.warning("mock link fallback failed", exc_info=True)
             return None
 
+    # -- closing the loop: fire scheduled jobs + confirm recoveries ----------- #
+    def _update_bandit_from_record(self, rec: dict, reward: bool) -> None:
+        try:
+            cls = RecoverabilityClass(rec.get("class"))
+            arm = ActionType((rec.get("decision") or {}).get("action"))
+            self.bandit.update(cls, arm, reward)
+        except Exception:
+            pass  # unknown class/action — skip the learning update
+
+    def fire_due_jobs(self, now: datetime | None = None, fire_all: bool = False) -> dict:
+        """Execute scheduled jobs whose time has come (or all pending, for a demo
+        fast-forward). Without a real gateway webhook we *simulate* the confirmation
+        from the model's predicted success probability — closing the loop and letting
+        the bandit learn from the outcome. A real payment.captured webhook overrides it."""
+        now = now or datetime.now(timezone.utc)
+        jobs = self.store.all_pending_jobs() if fire_all else self.store.due_jobs(now)
+        fired = recovered = 0
+        for job in jobs:
+            rec = self.store.get_case(job["case_id"])
+            if rec is None:
+                self.store.mark_job(job["id"], "skipped", "case missing")
+                continue
+            prob = float(
+                (rec.get("decision") or {}).get("prob")
+                or rec.get("predicted_recover_prob")
+                or 0.0
+            )
+            ok = self._rng.random() < prob
+            self.store.set_case_recovered(rec["id"], ok, source="simulated")
+            self._update_bandit_from_record(rec, ok)
+            self.store.mark_job(job["id"], "recovered" if ok else "failed", None)
+            fired += 1
+            recovered += int(ok)
+        if fired:
+            self.store.save_bandit(self.bandit.export_ab())
+        return {
+            "fired": fired,
+            "recovered": recovered,
+            "pending": self.store.pending_job_count(),
+        }
+
+    def confirm_recovery(self, case_id: str, source: str = "webhook") -> bool:
+        """Mark a case recovered from a real gateway event (payment.captured)."""
+        rec = self.store.get_case(case_id)
+        if rec is None:
+            return False
+        self.store.set_case_recovered(case_id, True, source=source)
+        self._update_bandit_from_record(rec, True)
+        self.store.save_bandit(self.bandit.export_ab())
+        return True
+
     def handle_webhook(
         self, raw_body: bytes, signature: str | None, event_id: str | None = None
     ) -> dict:
@@ -379,6 +438,16 @@ class RecoveryService:
             self._seen_events[dedup_key] = True
             while len(self._seen_events) > 2048:
                 self._seen_events.popitem(last=False)
+
+        # Recovery confirmation (payment.captured / subscription.charged) closes the loop.
+        if is_recovery_confirmation(event):
+            payload = event.get("payload", {})
+            entity = payload.get("payment", {}).get("entity", {}) or payload.get(
+                "subscription", {}
+            ).get("entity", {})
+            case_id = (entity.get("notes") or {}).get("case_id")
+            confirmed = self.confirm_recovery(case_id) if case_id else False
+            return {"ok": True, "handled": confirmed, "event": "recovery_confirmation"}
 
         failure = parse_failure_event(event)
         if failure is None:

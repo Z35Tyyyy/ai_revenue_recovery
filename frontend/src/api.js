@@ -32,6 +32,7 @@ export const api = {
       body: JSON.stringify(body),
       signal,
     }),
+  advanceClock: () => j("/api/scheduler/advance", { method: "POST" }),
 };
 
 export function formatINR(paise) {

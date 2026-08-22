@@ -5,6 +5,7 @@ Run: ``uvicorn recovery.api.app:app --reload --port 8000``
 
 from __future__ import annotations
 
+import asyncio
 import json
 import time
 from contextlib import asynccontextmanager
@@ -26,8 +27,22 @@ _DIST = REPO_ROOT / "frontend" / "dist"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    get_service()  # warm models + sample episodes at startup
-    yield
+    svc = get_service()  # warm models + sample episodes at startup
+
+    async def _scheduler_loop() -> None:
+        # Close the loop: fire scheduled retry/nudge jobs whose time has come.
+        while True:
+            try:
+                await run_in_threadpool(svc.fire_due_jobs)
+            except Exception:  # a tick failure must never kill the server
+                pass
+            await asyncio.sleep(15)
+
+    task = asyncio.create_task(_scheduler_loop())
+    try:
+        yield
+    finally:
+        task.cancel()
 
 
 app = FastAPI(
@@ -104,6 +119,12 @@ def plan(req: PlanRequest) -> dict:
 @app.get("/api/scenarios")
 def scenarios() -> dict:
     return {"scenarios": list(SCENARIOS)}
+
+
+@app.post("/api/scheduler/advance", dependencies=[Depends(require_api_key)])
+def scheduler_advance() -> dict:
+    """Demo fast-forward: fire ALL pending scheduled jobs now and confirm outcomes."""
+    return get_service().fire_due_jobs(fire_all=True)
 
 
 @app.get("/api/campaign/stream")

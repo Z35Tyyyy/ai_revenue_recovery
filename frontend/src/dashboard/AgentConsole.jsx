@@ -44,7 +44,20 @@ export function AgentConsole() {
   const [result, setResult] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [ff, setFf] = useState(null);
+  const [ffBusy, setFfBusy] = useState(false);
   const ctrlRef = useRef(null);
+
+  const fastForward = async () => {
+    setFfBusy(true);
+    try {
+      setFf(await api.advanceClock());
+    } catch {
+      /* offline */
+    } finally {
+      setFfBusy(false);
+    }
+  };
 
   useEffect(() => () => ctrlRef.current?.abort(), []);
 
@@ -154,6 +167,20 @@ export function AgentConsole() {
             {busy ? "Diagnosing…" : "Diagnose & plan"} <Icon name="bolt" size={16} />
           </Button>
           {error && <p className="agent__error">{error}</p>}
+
+          {result?.schedule?.job_id && (
+            <div className="agent__ff">
+              <button className="agent__ff-btn" onClick={fastForward} disabled={ffBusy}>
+                <Icon name="clock" size={14} /> {ffBusy ? "Advancing…" : "Fast-forward the clock"}
+              </button>
+              {ff && (
+                <span className="agent__ff-res">
+                  fired {ff.fired} · <strong className="tnum">{ff.recovered}</strong> recovered ·{" "}
+                  {ff.pending} pending
+                </span>
+              )}
+            </div>
+          )}
         </Card>
 
         {/* -------- result -------- */}

@@ -87,6 +87,35 @@ class RecoveryStore:
     def count_cases(self) -> int:
         return self._db.execute("SELECT COUNT(*) AS n FROM cases").fetchone()["n"]
 
+    def recovered_count(self) -> int:
+        return self._db.execute(
+            "SELECT COUNT(*) AS n FROM cases WHERE recovered = 1"
+        ).fetchone()["n"]
+
+    def get_case(self, case_id: str) -> dict | None:
+        row = self._db.execute(
+            "SELECT payload FROM cases WHERE id = ?", (case_id,)
+        ).fetchone()
+        return json.loads(row["payload"]) if row else None
+
+    def set_case_recovered(self, case_id: str, recovered: bool, source: str) -> bool:
+        row = self._db.execute(
+            "SELECT payload FROM cases WHERE id = ?", (case_id,)
+        ).fetchone()
+        if not row:
+            return False
+        rec = json.loads(row["payload"])
+        rec["recovered"] = bool(recovered)
+        rec["status"] = "recovered" if recovered else "failed"
+        rec["recovery_source"] = source
+        with self._lock:
+            self._db.execute(
+                "UPDATE cases SET recovered = ?, status = ?, payload = ? WHERE id = ?",
+                (int(bool(recovered)), rec["status"], json.dumps(rec), case_id),
+            )
+            self._db.commit()
+        return True
+
     # -- bandit posteriors --------------------------------------------------- #
     def save_bandit(self, ab: dict[tuple[str, str], list[float]]) -> None:
         with self._lock:
@@ -115,6 +144,12 @@ class RecoveryStore:
         cur = self._db.execute(
             "SELECT * FROM jobs WHERE status = 'pending' AND run_at <= ? ORDER BY run_at",
             (now.isoformat(),),
+        )
+        return [dict(r) for r in cur.fetchall()]
+
+    def all_pending_jobs(self) -> list[dict]:
+        cur = self._db.execute(
+            "SELECT * FROM jobs WHERE status = 'pending' ORDER BY run_at"
         )
         return [dict(r) for r in cur.fetchall()]
 

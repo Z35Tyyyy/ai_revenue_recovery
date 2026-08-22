@@ -108,3 +108,38 @@ def test_webhook_valid_signature_and_idempotency(trained_bundle, holdout, monkey
     dup = svc.handle_webhook(body, signature=sig, event_id="evt_1")
     assert dup["handled"] is False
     assert dup["reason"] == "duplicate event"
+
+
+def test_scheduler_fires_jobs_and_closes_loop(trained_bundle, holdout):
+    svc = _service(trained_bundle, holdout)
+    # Planning a (non-give-up) case persists it and enqueues a scheduled job.
+    svc.plan(PlanRequest(reason_code="insufficient_funds", amount_paise=49900))
+    assert svc.store.pending_job_count() >= 1
+    out = svc.fire_due_jobs(fire_all=True)  # demo fast-forward
+    assert out["fired"] >= 1
+    assert svc.store.pending_job_count() == 0  # all fired → loop closed
+
+
+def test_confirm_recovery_marks_case(trained_bundle, holdout):
+    svc = _service(trained_bundle, holdout)
+    rec = svc.plan(PlanRequest(reason_code="insufficient_funds", amount_paise=49900))
+    assert svc.confirm_recovery(rec["id"]) is True
+    got = svc.store.get_case(rec["id"])
+    assert got["recovered"] is True and got["recovery_source"] == "webhook"
+    assert svc.store.recovered_count() >= 1
+
+
+def test_webhook_recovery_confirmation_closes_the_loop(trained_bundle, holdout, monkeypatch):
+    monkeypatch.setenv("RAZORPAY_WEBHOOK_SECRET", "whsec_test")
+    get_settings.cache_clear()
+    svc = _service(trained_bundle, holdout)
+    rec = svc.plan(PlanRequest(reason_code="insufficient_funds", amount_paise=49900))
+    event = {
+        "event": "payment.captured",
+        "payload": {"payment": {"entity": {"id": "pay_OK", "notes": {"case_id": rec["id"]}}}},
+    }
+    body = json.dumps(event).encode()
+    sig = hmac.new(b"whsec_test", body, hashlib.sha256).hexdigest()
+    out = svc.handle_webhook(body, signature=sig, event_id="evt_cap_1")
+    assert out["handled"] is True and out["event"] == "recovery_confirmation"
+    assert svc.store.get_case(rec["id"])["recovered"] is True
