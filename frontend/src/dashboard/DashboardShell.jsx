@@ -35,7 +35,7 @@ function Topbar({ health, online }) {
       <div className="top__caps">
         {!online && <Pill tone="warn">offline · sample data</Pill>}
         <Pill tone={health?.razorpay_live ? "pos" : "neutral"} icon>
-          {health?.razorpay_live ? "Razorpay live" : "Razorpay mock"}
+          {health?.razorpay_live ? "Razorpay · test mode" : "Razorpay mock"}
         </Pill>
         <Pill tone={health?.llm_enabled ? "cool" : "neutral"} icon>
           {health?.llm_enabled ? `Agent · ${health.llm_provider}` : "Agent · templates"}

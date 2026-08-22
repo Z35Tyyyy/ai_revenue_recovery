@@ -333,22 +333,39 @@ export function AgentConsole() {
                       <a className="agent__msg-link" href={link.short_url} target="_blank" rel="noreferrer">
                         <Icon name="link" size={14} /> {link.short_url}
                         <Icon name="arrow-up-right" size={13} />
-                        {link.is_mock && <span className="agent__msg-mock">mock</span>}
+                        {link.is_mock ? (
+                          <span className="agent__msg-mock">mock</span>
+                        ) : (
+                          <span className="agent__msg-real">real · test mode</span>
+                        )}
                       </a>
                     )}
                     {result?.link_note && <p className="agent__msg-note">{result.link_note}</p>}
+                    {link && !link.is_mock && (
+                      <p className="agent__msg-hint">
+                        A real Razorpay test-mode link. Open it and pay with test card{" "}
+                        <strong>4111&nbsp;1111&nbsp;1111&nbsp;1111</strong> (any future expiry / CVV) or
+                        UPI <strong>success@razorpay</strong> — then check below. The loop closes on
+                        Razorpay's own <strong>paid</strong> status, no webhook needed.
+                      </p>
+                    )}
                     {link && (
                       <div className="agent__poll">
                         <button className="agent__ff-btn" onClick={checkPayment} disabled={pollBusy}>
                           <Icon name="check" size={13} />{" "}
-                          {pollBusy ? "Checking Razorpay…" : "Check for payment"}
+                          {pollBusy ? "Checking Razorpay…" : "Check Razorpay for payment"}
                         </button>
-                        {poll && (
-                          <span className="agent__ff-res">
-                            polled {poll.checked} ·{" "}
-                            <strong className="tnum">{poll.confirmed}</strong> confirmed paid
-                          </span>
-                        )}
+                        {poll &&
+                          (poll.confirmed > 0 ? (
+                            <span className="agent__poll-ok">
+                              <Icon name="check" size={13} /> Recovered — confirmed by Razorpay poll
+                            </span>
+                          ) : (
+                            <span className="agent__ff-res">
+                              polled {poll.checked} open link{poll.checked === 1 ? "" : "s"} · none paid
+                              yet
+                            </span>
+                          ))}
                       </div>
                     )}
                   </Card>

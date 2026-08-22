@@ -838,6 +838,33 @@ select.input {
   font-size: var(--fs-xs);
   color: var(--warn);
 }
+.agent__msg-real {
+  margin-left: auto;
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.15em 0.5em;
+  border-radius: var(--r-full);
+  color: var(--pos);
+  border: 1px solid var(--pos-line);
+  background: var(--pos-wash);
+}
+.agent__msg-hint {
+  margin-top: var(--s-3);
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  line-height: 1.55;
+}
+.agent__msg-hint strong { color: var(--text); font-weight: 600; }
+.agent__poll-ok {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--pos);
+}
+.agent__poll-ok svg { color: var(--pos); }
 .agent__sched { padding: var(--s-5); }
 .agent__sched-when { font-size: var(--fs-sm); color: var(--text-2); }
 .agent__sched-when strong { color: var(--text); }
@@ -1153,6 +1180,16 @@ select.input {
 }
 .batch-banner svg { color: var(--pos); flex: none; margin-top: 3px; }
 .batch-banner strong { color: var(--text); font-weight: 600; }
+.batch-note {
+  margin: 0 0 var(--s-6);
+  font-size: var(--fs-xs);
+  color: var(--text-4);
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+}
+.batch-note a { color: var(--text-2); text-decoration: underline; text-underline-offset: 2px; }
+.batch-note a:hover { color: var(--cool); }
+.batch-note strong { color: var(--text-3); font-weight: 600; }
 
 .attribution { display: flex; flex-direction: column; gap: var(--s-3); }
 .attribution__row {

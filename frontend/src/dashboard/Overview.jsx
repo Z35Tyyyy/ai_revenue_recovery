@@ -60,9 +60,9 @@ export function Overview() {
   return (
     <div className="page console">
       <p className="page__lead">
-        Connected to Razorpay · scanned <strong>{total.toLocaleString("en-IN")}</strong> failed
-        recurring charges · <strong>{formatINR(atRisk)}</strong> of revenue at risk. Here's what the
-        agent won back.
+        Razorpay test mode · the agent worked a <strong>{total.toLocaleString("en-IN")}</strong>-charge{" "}
+        <strong>synthetic</strong> failure batch — the scale Track 3 asks for — holding{" "}
+        <strong>{formatINR(atRisk)}</strong> of recurring revenue at risk. Here's what it won back.
       </p>
 
       {/* hero odometer */}
@@ -124,6 +124,12 @@ export function Overview() {
           roughly half the bank retries, every decision logged.
         </span>
       </Reveal>
+
+      <p className="batch-note mono">
+        Synthetic test-mode batch, by design — Track 3 asks for exactly this. Not a sim: the{" "}
+        <Link to="/dashboard/agent">Agent</Link> creates a real Razorpay test-mode payment link and
+        closes one <strong>actual</strong> recovery live, on Razorpay's own paid status.
+      </p>
 
       <div className="page__cols">
         {/* recovered by action */}

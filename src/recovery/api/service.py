@@ -311,6 +311,7 @@ class RecoveryService:
                     "short_url": link.short_url,
                     "is_mock": link.is_mock,
                     "amount": format_inr(link.amount_paise),
+                    "status": link.status,
                 }
                 if link.is_mock and self.gateway.live and not chaos["gateway"]:
                     link_note = "Razorpay was unreachable — showing a mock link."
