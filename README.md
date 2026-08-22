@@ -18,9 +18,11 @@ The product ships as two deliberately distinct surfaces. A **cinematic, scroll-d
 
 ![Landing](docs/landing.png)
 
-Story mode (`/`) → **Enter the console →** → operating mode (`/dashboard`): Overview, Recoveries, Agent, Learning, Experiments, Settings.
+Story mode (`/`) → **Enter the console →** → operating mode (`/dashboard`): Overview, **Live**, Recoveries, Agent, Learning, Experiments, Settings.
 
 ![Console — Overview](docs/dashboard.png)
+
+The **Live** page is where it stops being a report and starts being a *system*: a fresh stream of failed charges runs through the real engine in real time — a bandit learning as it goes — **racing the Razorpay fixed-retry default** on the same hidden ground truth. Reshape the failure world (an *expired-card wave*, a *payday crunch*, a *fraud spike*) and watch the policy react and the numbers recompute live. On the expired-card wave the engine recovers ~65% vs the default's ~37%, using a third of the retries — computed in front of you, not read from a file.
 
 Every recovery opens a drawer with the agent's full reasoning trace — a decision log, not a debug dump.
 
@@ -90,7 +92,8 @@ src/recovery/
 ├── compliance.py  RBI e-mandate / UPI-Autopay / TRAI DLT guardrails
 ├── store.py       SQLite: durable cases + persisted bandit + scheduled jobs
 ├── scheduler.py   Executes retry/nudge jobs at the compliant time (closed loop)
-└── api/           FastAPI backend (webhooks, cases, metrics, live plan)
+├── live.py        Streaming live-campaign engine (SSE): engine vs baseline race
+└── api/           FastAPI backend (webhooks, cases, metrics, live plan, SSE stream)
 frontend/          React/Vite operating console (dark, CRED-inspired)
 scripts/           generate_data · train_models · run_eval · robustness · demo_live
 ```

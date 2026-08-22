@@ -150,8 +150,14 @@ def generate_population(
     n_failures: int = 12000,
     seed: int = 7,
     horizon_days: int = 120,
+    reason_mix: dict[str, float] | None = None,
 ) -> Population:
-    """Build a reproducible population and a stream of failed recurring charges."""
+    """Build a reproducible population and a stream of failed recurring charges.
+
+    ``reason_mix`` overrides the default failure-reason weights — used by the live
+    "world controls" to reshape the failure population (e.g. expired-card-heavy) and
+    watch the policy react.
+    """
     rng = np.random.default_rng(seed)
     now = datetime(2026, 8, 1, tzinfo=timezone.utc)
 
@@ -177,8 +183,9 @@ def generate_population(
         subscriptions[sub.id] = sub
         cust_ids.append(cust.id)
 
-    reason_codes = list(_REASON_MIX)
-    reason_weights = np.asarray(list(_REASON_MIX.values()))
+    _mix = reason_mix or _REASON_MIX
+    reason_codes = list(_mix)
+    reason_weights = np.asarray(list(_mix.values()), dtype=float)
     reason_weights = reason_weights / reason_weights.sum()
 
     # Some customers are "repeat offenders" — draw failures with a mild power bias.

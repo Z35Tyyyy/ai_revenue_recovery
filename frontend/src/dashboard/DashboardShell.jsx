@@ -2,6 +2,7 @@ import React from "react";
 import { Route, Routes, useLocation } from "react-router-dom";
 import { Sidebar } from "./Sidebar.jsx";
 import { Overview } from "./Overview.jsx";
+import { Live } from "./Live.jsx";
 import { Recoveries } from "./Recoveries.jsx";
 import { AgentConsole } from "./AgentConsole.jsx";
 import { LearningConsole } from "./LearningConsole.jsx";
@@ -12,6 +13,7 @@ import { useHealth } from "../lib/useData.js";
 
 const TITLES = {
   "/dashboard": "Overview",
+  "/dashboard/live": "Live",
   "/dashboard/recoveries": "Recoveries",
   "/dashboard/agent": "Agent",
   "/dashboard/learning": "Learning",
@@ -52,6 +54,7 @@ export default function DashboardShell() {
           <ErrorBoundary>
             <Routes>
               <Route index element={<Overview />} />
+              <Route path="live" element={<Live />} />
               <Route path="recoveries" element={<Recoveries />} />
               <Route path="agent" element={<AgentConsole />} />
               <Route path="learning" element={<LearningConsole />} />

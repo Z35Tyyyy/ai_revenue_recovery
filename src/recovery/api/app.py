@@ -5,11 +5,13 @@ Run: ``uvicorn recovery.api.app:app --reload --port 8000``
 
 from __future__ import annotations
 
+import json
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 
@@ -17,6 +19,7 @@ from recovery.api.schemas import PlanRequest
 from recovery.api.service import get_service
 from recovery.config import REPO_ROOT, get_settings
 from recovery.domain.taxonomy import FAILURE_REASONS
+from recovery.live import SCENARIOS, run_campaign
 
 _DIST = REPO_ROOT / "frontend" / "dist"
 
@@ -96,6 +99,38 @@ def reasons() -> dict:
 @app.post("/api/plan", dependencies=[Depends(require_api_key)])
 def plan(req: PlanRequest) -> dict:
     return get_service().plan(req)
+
+
+@app.get("/api/scenarios")
+def scenarios() -> dict:
+    return {"scenarios": list(SCENARIOS)}
+
+
+@app.get("/api/campaign/stream")
+def campaign_stream(
+    n: int = Query(default=100, ge=10, le=400),
+    scenario: str = Query(default="balanced"),
+    seed: int = Query(default=20260823),
+    pace_ms: int = Query(default=70, ge=0, le=500),
+) -> StreamingResponse:
+    """Server-Sent Events: stream a live recovery campaign, case by case."""
+    svc = get_service()
+    scenario = scenario if scenario in SCENARIOS else "balanced"
+
+    def gen():
+        stream = run_campaign(
+            svc.recovery_model, svc.timing_model, n=n, scenario=scenario, seed=seed
+        )
+        for ev in stream:
+            yield f"data: {json.dumps(ev)}\n\n"
+            if pace_ms:
+                time.sleep(pace_ms / 1000.0)
+
+    return StreamingResponse(
+        gen(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @app.post("/webhooks/razorpay")

@@ -10,6 +10,7 @@ const I = (d) => (
 
 const NAV = [
   { to: "/dashboard", label: "Overview", end: true, icon: I(<><rect x="3" y="3" width="8" height="8" rx="1.5" /><rect x="13" y="3" width="8" height="5" rx="1.5" /><rect x="13" y="11" width="8" height="10" rx="1.5" /><rect x="3" y="14" width="8" height="7" rx="1.5" /></>) },
+  { to: "/dashboard/live", label: "Live", icon: I(<><circle cx="12" cy="12" r="9" /><path d="M10 8.5l6 3.5-6 3.5v-7Z" fill="currentColor" stroke="none" /></>) },
   { to: "/dashboard/recoveries", label: "Recoveries", icon: I(<><path d="M4 6h16M4 12h16M4 18h16" /><circle cx="4" cy="6" r="0.6" fill="currentColor" /></>) },
   { to: "/dashboard/agent", label: "Agent", icon: I(<><rect x="4" y="6" width="16" height="12" rx="2" /><path d="M9 11h.01M15 11h.01M9 15h6M12 3v3" /></>) },
   { to: "/dashboard/learning", label: "Learning", icon: I(<><path d="M12 3a4 4 0 0 0-4 4v0a3 3 0 0 0-1 5.5V15a3 3 0 0 0 3 3h4a3 3 0 0 0 3-3v-2.5A3 3 0 0 0 16 7v0a4 4 0 0 0-4-4Z" /><path d="M12 8v8" /></>) },
