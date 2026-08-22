@@ -226,6 +226,7 @@ class RecoveryService:
                 "by_reason_count": dict(sorted(by_reason.items(), key=lambda x: -x[1])),
             },
             "bandit": self.bandit.snapshot(),
+            "real_recoveries": self.real_recovery_proof(),
             "capabilities": {
                 "razorpay_live": self.gateway.live,
                 "llm_enabled": self.settings.llm_enabled,
@@ -421,15 +422,24 @@ class RecoveryService:
             "pending": self.store.pending_job_count(),
         }
 
-    def confirm_recovery(self, case_id: str, source: str = "webhook") -> bool:
+    def confirm_recovery(
+        self, case_id: str, source: str = "webhook", payment_id: str | None = None
+    ) -> bool:
         """Mark a case recovered from a real gateway event (payment.captured)."""
         rec = self.store.get_case(case_id)
         if rec is None:
             return False
-        self.store.set_case_recovered(case_id, True, source=source)
+        self.store.set_case_recovered(case_id, True, source=source, payment_id=payment_id)
         self._update_bandit_from_record(rec, True)
         self.store.save_bandit(self.bandit.export_ab())
         return True
+
+    @staticmethod
+    def _captured_payment_id(link: dict) -> str | None:
+        for p in link.get("payments") or []:
+            if p.get("status") == "captured":
+                return p.get("payment_id") or p.get("id")
+        return None
 
     def check_recoveries(self) -> dict:
         """Poll Razorpay for open cases with a REAL payment link and close any that were
@@ -444,17 +454,39 @@ class RecoveryService:
                 continue
             checked += 1
             try:
-                status = self.gateway.fetch_payment_link_status(pl["id"])
+                link = self.gateway.fetch_payment_link(pl["id"])
             except Exception:
                 logger.warning("payment-link poll failed for %s", pl.get("id"), exc_info=True)
                 continue
-            if status == "paid" and self.confirm_recovery(rec["id"], source="razorpay_poll"):
+            if link.get("status") == "paid" and self.confirm_recovery(
+                rec["id"], source="razorpay_poll", payment_id=self._captured_payment_id(link)
+            ):
                 confirmed += 1
         return {
             "checked": checked,
             "confirmed": confirmed,
             "recovered_total": self.store.recovered_count(),
         }
+
+    def real_recovery_proof(self) -> dict:
+        """Summary of recoveries closed by a real captured Razorpay payment (not the
+        simulator) — the Console surfaces this as first-hand 'not a sim' evidence."""
+        recs = self.store.real_recoveries()
+        total = 0
+        items = []
+        for rec in recs:
+            pl = rec.get("payment_link") or {}
+            total += int(rec.get("amount_paise") or 0)
+            items.append(
+                {
+                    "case_id": rec.get("id"),
+                    "amount": rec.get("amount"),
+                    "link_id": pl.get("id"),
+                    "payment_id": rec.get("payment_id"),
+                    "source": rec.get("recovery_source"),
+                }
+            )
+        return {"count": len(items), "total_paise": total, "items": items[:5]}
 
     def set_chaos(self, llm: bool | None = None, gateway: bool | None = None) -> dict:
         """Deliberately force a dependency 'down' to demo graceful fallbacks."""

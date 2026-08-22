@@ -52,6 +52,7 @@ export const FALLBACK_METRICS = {
   },
   live_sample: null,
   bandit: {},
+  real_recoveries: { count: 0, total_paise: 0, items: [] },
   capabilities: { razorpay_live: false, llm_enabled: false, llm_provider: null },
 };
 

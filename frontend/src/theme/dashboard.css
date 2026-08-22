@@ -1191,6 +1191,61 @@ select.input {
 .batch-note a:hover { color: var(--cool); }
 .batch-note strong { color: var(--text-3); font-weight: 600; }
 
+/* proof strip — the two differentiators surfaced on the money-shot */
+.proofs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-3);
+  margin: 0 0 var(--s-6);
+}
+.proof {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  line-height: 1.5;
+}
+.proof--live { border-color: var(--pos-line); background: var(--pos-wash); }
+.proof__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--r-full);
+  color: var(--pos);
+  border: 1px solid var(--pos-line);
+  background: var(--pos-wash);
+}
+.proof__text { flex: 1; }
+.proof__text strong { color: var(--text); font-weight: 600; }
+.proof__text a { color: var(--cool); text-decoration: underline; text-underline-offset: 2px; }
+.proof__mono { color: var(--text-4); font-size: var(--fs-xs); }
+.proof__tag {
+  flex: none;
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-4);
+  padding: 0.2em 0.55em;
+  border-radius: var(--r-full);
+  border: 1px solid var(--line-2);
+}
+.proof--live .proof__tag { color: var(--pos); border-color: var(--pos-line); }
+.learn-card__unit {
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-4);
+  font-family: var(--font-mono);
+}
+@media (max-width: 900px) { .proofs { grid-template-columns: 1fr; } }
+
 .attribution { display: flex; flex-direction: column; gap: var(--s-3); }
 .attribution__row {
   display: grid;

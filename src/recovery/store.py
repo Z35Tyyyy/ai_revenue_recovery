@@ -92,13 +92,31 @@ class RecoveryStore:
             "SELECT COUNT(*) AS n FROM cases WHERE recovered = 1"
         ).fetchone()["n"]
 
+    def real_recoveries(self) -> list[dict]:
+        """Cases closed by a REAL Razorpay signal (poll/webhook) on a real (non-mock)
+        payment link — i.e. an actual captured payment, not the simulator."""
+        cur = self._db.execute(
+            "SELECT payload FROM cases WHERE recovered = 1 ORDER BY created_at DESC"
+        )
+        out: list[dict] = []
+        for r in cur.fetchall():
+            rec = json.loads(r["payload"])
+            pl = rec.get("payment_link") or {}
+            if rec.get("recovery_source") in ("razorpay_poll", "webhook") and not pl.get(
+                "is_mock"
+            ):
+                out.append(rec)
+        return out
+
     def get_case(self, case_id: str) -> dict | None:
         row = self._db.execute(
             "SELECT payload FROM cases WHERE id = ?", (case_id,)
         ).fetchone()
         return json.loads(row["payload"]) if row else None
 
-    def set_case_recovered(self, case_id: str, recovered: bool, source: str) -> bool:
+    def set_case_recovered(
+        self, case_id: str, recovered: bool, source: str, payment_id: str | None = None
+    ) -> bool:
         row = self._db.execute(
             "SELECT payload FROM cases WHERE id = ?", (case_id,)
         ).fetchone()
@@ -108,6 +126,8 @@ class RecoveryStore:
         rec["recovered"] = bool(recovered)
         rec["status"] = "recovered" if recovered else "failed"
         rec["recovery_source"] = source
+        if payment_id:
+            rec["payment_id"] = payment_id
         with self._lock:
             self._db.execute(
                 "UPDATE cases SET recovered = ?, status = ?, payload = ? WHERE id = ?",

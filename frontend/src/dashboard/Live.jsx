@@ -32,15 +32,14 @@ export function Live() {
   };
   useEffect(() => () => stop(), []);
 
-  // Deep-link: /dashboard/live?auto=1[&scenario=expired_cards] auto-starts a campaign.
+  // Auto-start a campaign the moment the page opens so a first-time visitor sees the
+  // engine actually running — never a cold, all-zero screen. ?scenario= overrides.
   const autoRan = useRef(false);
   useEffect(() => {
     if (autoRan.current) return;
+    autoRan.current = true;
     const p = new URLSearchParams(window.location.search);
-    if (p.get("auto") === "1") {
-      autoRan.current = true;
-      setTimeout(() => run(p.get("scenario") || "balanced"), 60);
-    }
+    setTimeout(() => run(p.get("scenario") || "balanced"), 200);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const run = (sc = scenario, count = n) => {
@@ -165,7 +164,11 @@ export function Live() {
         </span>
       </div>
       <Card className="live__feed">
-        {feed.length === 0 && <div className="live__feed-empty mono">press “Run live” to start the stream…</div>}
+        {feed.length === 0 && (
+          <div className="live__feed-empty mono">
+            {running ? "streaming failed charges…" : "starting a live campaign…"}
+          </div>
+        )}
         <AnimatePresence initial={false}>
           {feed.map((c) => (
             <motion.div

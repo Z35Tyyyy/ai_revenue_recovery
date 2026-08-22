@@ -32,6 +32,8 @@ export function Overview() {
   const eng = h?.policies?.engine;
   const fixed = h?.policies?.fixed_retry;
   const up = h?.uplift?.vs_fixed_retry;
+  const rr = metrics?.real_recoveries;
+  const proof0 = rr?.items?.[0];
 
   // Recovered-by-action attribution, computed live from the sample cases.
   const attribution = useMemo(() => {
@@ -126,10 +128,41 @@ export function Overview() {
       </Reveal>
 
       <p className="batch-note mono">
-        Synthetic test-mode batch, by design — Track 3 asks for exactly this. Not a sim: the{" "}
-        <Link to="/dashboard/agent">Agent</Link> creates a real Razorpay test-mode payment link and
-        closes one <strong>actual</strong> recovery live, on Razorpay's own paid status.
+        Synthetic test-mode batch, by design — Track 3 asks for exactly this. The batch is
+        synthetic; the loop that works it is real.
       </p>
+
+      {/* proof strip — surfaces the two things a first-time judge would otherwise miss:
+          a genuinely real Razorpay recovery, and the graceful-degradation story. */}
+      <div className="proofs">
+        <div className={`proof ${rr?.count > 0 ? "proof--live" : ""}`}>
+          <span className="proof__icon"><Icon name="check" size={15} /></span>
+          {rr?.count > 0 ? (
+            <span className="proof__text">
+              <strong className="tnum">{rr.count}</strong> real Razorpay{" "}
+              {rr.count === 1 ? "recovery" : "recoveries"} — <strong>{formatINR(rr.total_paise)}</strong>{" "}
+              actually captured & confirmed by live poll
+              {(proof0?.payment_id || proof0?.link_id) && (
+                <span className="proof__mono mono"> · {proof0.payment_id || proof0.link_id}</span>
+              )}
+            </span>
+          ) : (
+            <span className="proof__text">
+              Not a sim — close a <strong>real</strong> Razorpay recovery end-to-end in the{" "}
+              <Link to="/dashboard/agent">Agent</Link>: a real test-mode link, paid, confirmed by poll.
+            </span>
+          )}
+          <span className="proof__tag mono">not a sim</span>
+        </div>
+        <div className="proof">
+          <span className="proof__icon"><Icon name="check" size={15} /></span>
+          <span className="proof__text">
+            <strong>Survives a full LLM + gateway outage</strong> — force both down in the{" "}
+            <Link to="/dashboard/agent">Agent</Link> and the loop still recovers.
+          </span>
+          <span className="proof__tag mono">resilient</span>
+        </div>
+      </div>
 
       <div className="page__cols">
         {/* recovered by action */}

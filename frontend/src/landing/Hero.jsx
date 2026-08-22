@@ -80,9 +80,9 @@ function RecoveryTicker() {
 export function Hero({ metrics }) {
   const eng = metrics?.holdout?.policies?.engine;
   const up = metrics?.holdout?.uplift?.vs_fixed_retry;
-  const rate = eng ? eng.recovery_rate * 100 : 67.7;
-  const rel = up ? up.recovery_rate_rel * 100 : 43.8;
-  const revenue = eng ? eng.revenue_recovered_paise : 89944110000;
+  const rate = eng ? eng.recovery_rate * 100 : 67.8;
+  const absPts = up ? up.recovery_rate_abs * 100 : 20.7;
+  const revenue = eng ? eng.revenue_recovered_paise : 910519800;
 
   return (
     <section className="hero" id="top">
@@ -121,7 +121,7 @@ export function Hero({ metrics }) {
             </div>
             <div className="hero__stat">
               <div className="hero__stat-val tnum hero__stat-val--pos">
-                +<Counter to={rel} format={(v) => Math.round(v)} />%
+                +<Counter to={absPts} format={(v) => v.toFixed(1)} /> pts
               </div>
               <div className="hero__stat-lab">vs the default retry</div>
             </div>

@@ -53,6 +53,8 @@ class Gateway(Protocol):
 
     def fetch_payment_link_status(self, link_id: str) -> str: ...
 
+    def fetch_payment_link(self, link_id: str) -> dict: ...
+
 
 class MockGateway:
     """Deterministic, offline stand-in for the Razorpay API."""
@@ -84,6 +86,14 @@ class MockGateway:
 
     def fetch_payment_link_status(self, link_id: str) -> str:
         return "paid"  # mock link is treated as paid so the demo loop closes
+
+    def fetch_payment_link(self, link_id: str) -> dict:
+        pay = f"pay_MOCK{self._hash(link_id)}"
+        return {
+            "id": link_id,
+            "status": "paid",
+            "payments": [{"payment_id": pay, "status": "captured"}],
+        }
 
 
 class RazorpayGateway:
@@ -176,6 +186,11 @@ class RazorpayGateway:
         """
         resp = self._client.payment_link.fetch(link_id)
         return resp.get("status", "unknown")
+
+    def fetch_payment_link(self, link_id: str) -> dict:
+        """Full link object (status + captured payments) — lets the poll record the
+        real payment id that closed the recovery."""
+        return self._client.payment_link.fetch(link_id)
 
 
 def get_gateway(settings: Settings | None = None) -> Gateway:

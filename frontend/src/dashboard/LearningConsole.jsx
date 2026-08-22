@@ -33,8 +33,11 @@ export function LearningConsole() {
   return (
     <div className="page">
       <p className="page__lead">
-        A contextual bandit (Thompson sampling over class × action) corrects the model&rsquo;s
-        expected-value estimates from live outcomes. Warmer cells = higher observed success.
+        A contextual bandit (Thompson sampling over class × action) learns, from live outcomes,
+        how well <em>each action</em> works for each failure class. Every cell is the bandit&rsquo;s
+        current success estimate for that action; the engine exploits the top-scoring action (marked
+        &#10003;) in each row. These are per-action estimates on the live stream — distinct from the
+        whole-policy recovery rates on the Console &amp; Experiments.
       </p>
 
       <Card className="matrix">
@@ -78,7 +81,7 @@ export function LearningConsole() {
         <div className="matrix__legend mono">
           <span>lower</span>
           <span className="matrix__scale" />
-          <span>higher success · % recovered</span>
+          <span>higher · bandit&rsquo;s learned success estimate per action</span>
         </div>
       </Card>
 
@@ -92,7 +95,9 @@ export function LearningConsole() {
               <div className="learn-card__pick">
                 <Icon name="arrow" size={14} /> {actionLabel(best)}
               </div>
-              <div className="learn-card__rate tnum">{(rate * 100).toFixed(1)}%</div>
+              <div className="learn-card__rate tnum">
+                {(rate * 100).toFixed(1)}% <span className="learn-card__unit">learned</span>
+              </div>
             </Card>
           );
         })}
