@@ -6,9 +6,7 @@ import { Live } from "./Live.jsx";
 import { Recoveries } from "./Recoveries.jsx";
 import { Exceptions } from "./Exceptions.jsx";
 import { AgentConsole } from "./AgentConsole.jsx";
-import { LearningConsole } from "./LearningConsole.jsx";
 import { Experiments } from "./Experiments.jsx";
-import { Settings } from "./Settings.jsx";
 import { ErrorBoundary, Pill } from "../components/ui.jsx";
 import { useHealth } from "../lib/useData.js";
 
@@ -18,9 +16,7 @@ const TITLES = {
   "/dashboard/recoveries": "Recoveries",
   "/dashboard/exceptions": "Exceptions",
   "/dashboard/agent": "Agent",
-  "/dashboard/learning": "Learning",
   "/dashboard/experiments": "Experiments",
-  "/dashboard/settings": "Settings",
 };
 
 function Topbar({ health, online }) {
@@ -60,9 +56,7 @@ export default function DashboardShell() {
               <Route path="recoveries" element={<Recoveries />} />
               <Route path="exceptions" element={<Exceptions />} />
               <Route path="agent" element={<AgentConsole />} />
-              <Route path="learning" element={<LearningConsole />} />
               <Route path="experiments" element={<Experiments />} />
-              <Route path="settings" element={<Settings />} />
             </Routes>
           </ErrorBoundary>
         </div>

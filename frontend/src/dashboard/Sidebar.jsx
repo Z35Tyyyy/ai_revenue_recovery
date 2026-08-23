@@ -14,9 +14,7 @@ const NAV = [
   { to: "/dashboard/recoveries", label: "Recoveries", icon: I(<><path d="M4 6h16M4 12h16M4 18h16" /><circle cx="4" cy="6" r="0.6" fill="currentColor" /></>) },
   { to: "/dashboard/exceptions", label: "Exceptions", icon: I(<><path d="M12 3l9 16H3L12 3Z" /><path d="M12 10v4M12 17h.01" /></>) },
   { to: "/dashboard/agent", label: "Agent", icon: I(<><rect x="4" y="6" width="16" height="12" rx="2" /><path d="M9 11h.01M15 11h.01M9 15h6M12 3v3" /></>) },
-  { to: "/dashboard/learning", label: "Learning", icon: I(<><path d="M12 3a4 4 0 0 0-4 4v0a3 3 0 0 0-1 5.5V15a3 3 0 0 0 3 3h4a3 3 0 0 0 3-3v-2.5A3 3 0 0 0 16 7v0a4 4 0 0 0-4-4Z" /><path d="M12 8v8" /></>) },
   { to: "/dashboard/experiments", label: "Experiments", icon: I(<><path d="M9 3v6l-5 8a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-5-8V3M8 3h8M8 14h8" /></>) },
-  { to: "/dashboard/settings", label: "Settings", icon: I(<><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" /></>) },
 ];
 
 export function Sidebar({ online }) {

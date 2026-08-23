@@ -61,10 +61,14 @@ export function Overview() {
 
   return (
     <div className="page console">
-      <p className="page__lead">
-        Razorpay test mode · the agent worked a <strong>{total.toLocaleString("en-IN")}</strong>-charge{" "}
-        <strong>synthetic</strong> failure batch — the scale Track 3 asks for — holding{" "}
-        <strong>{formatINR(atRisk)}</strong> of recurring revenue at risk. Here's what it won back.
+      <p className="page__lead page__lead--claim">
+        Everyone maximises recovery <em>rate</em> — the wrong number. This agent recovers{" "}
+        <strong>more money with half the bank retries</strong>, because it optimises what the merchant
+        keeps, not gross volume.
+      </p>
+      <p className="batch-sub mono">
+        Razorpay test mode · a {total.toLocaleString("en-IN")}-charge synthetic failure batch (the
+        scale Track 3 asks for) · {formatINR(atRisk)} at risk.
       </p>
 
       {/* hero odometer */}
@@ -75,10 +79,12 @@ export function Overview() {
             <Counter to={recovered / 100} format={(v) => formatINR(Math.round(v) * 100)} duration={1.6} />
           </div>
           <div className="hero-recovered__sub">
-            <strong className="tnum">{(rate * 100).toFixed(1)}%</strong> of failed revenue recovered
+            <strong className="tnum">{(rate * 100).toFixed(1)}%</strong> recovered on just{" "}
+            <strong className="tnum">{(eng?.retries ?? 12906).toLocaleString("en-IN")}</strong> bank
+            retries — <strong>half</strong> of Razorpay&rsquo;s {(((fixed?.retries ?? 26361) / 1000)).toFixed(0)}k
             {up && (
               <span className="hero-recovered__delta">
-                +{(up.recovery_rate_abs * 100).toFixed(1)} pts vs Razorpay's next-day retry
+                +{(up.recovery_rate_abs * 100).toFixed(1)} pts &amp; ½ the retries
               </span>
             )}
           </div>
@@ -88,20 +94,17 @@ export function Overview() {
         </Link>
       </Reveal>
 
-      {/* tiles */}
-      <motion.div className="tiles" variants={stagger(0.06)} initial="hidden" animate="show">
+      {/* tiles — the two axes that matter: more money, less effort */}
+      <motion.div className="tiles tiles--3" variants={stagger(0.06)} initial="hidden" animate="show">
         <motion.div variants={fadeUp}>
-          <Tile label="Revenue at risk" value={formatINR(atRisk)} sub={`${total.toLocaleString("en-IN")} failed charges`} />
-        </motion.div>
-        <motion.div variants={fadeUp}>
-          <Tile label="Recovered" value={formatINR(recovered)} delta={`${(rate * 100).toFixed(1)}%`} sub="of at-risk revenue" />
+          <Tile label="Money recovered" value={formatINR(recovered)} delta={`${(rate * 100).toFixed(1)}%`} sub="of at-risk revenue" />
         </motion.div>
         <motion.div variants={fadeUp}>
           <Tile
             label="vs Razorpay default"
-            value={`+${((up?.recovery_rate_abs ?? 0.207) * 100).toFixed(1)} pts`}
-            delta={`+${formatINR(up?.revenue_recovered_delta_paise ?? 275498300)}`}
-            sub="extra recovered"
+            value={`+${formatINR(up?.revenue_recovered_delta_paise ?? 275498300)}`}
+            delta={`+${((up?.recovery_rate_abs ?? 0.207) * 100).toFixed(1)} pts`}
+            sub="more money recovered"
           />
         </motion.div>
         <motion.div variants={fadeUp}>
@@ -110,7 +113,7 @@ export function Overview() {
             value={(eng?.retries ?? 12906).toLocaleString("en-IN")}
             deltaTone="cool"
             delta={`≈½ of ${((fixed?.retries ?? 26361) / 1000).toFixed(0)}k`}
-            sub="fewer, better-timed"
+            sub="the cost of recovery, halved"
           />
         </motion.div>
       </motion.div>
@@ -161,6 +164,15 @@ export function Overview() {
             <Link to="/dashboard/agent">Agent</Link> and the loop still recovers.
           </span>
           <span className="proof__tag mono">resilient</span>
+        </div>
+        <div className="proof">
+          <span className="proof__icon"><Icon name="check" size={15} /></span>
+          <span className="proof__text">
+            <strong>Holds across every failure world</strong> — <Link to="/dashboard/live">Live</Link>{" "}
+            auto-plays payday crunches, fraud spikes &amp; mandate lapses; the engine wins each — not a
+            simulator tuned to win.
+          </span>
+          <span className="proof__tag mono">robust</span>
         </div>
       </div>
 
