@@ -7,6 +7,10 @@ import { LiveFlow } from "./LiveFlow.jsx";
 
 const EMPTY_FLOW = { n: 0, cls: {}, act: {}, ca: {}, ao: {}, won: 0, lost: 0, active: null };
 
+// Auto-play walks every failure world on its own so the graph shows the full
+// complexity without anyone selecting scenarios by hand.
+const SCEN_CYCLE = ["balanced", "insufficient_funds", "expired_cards", "mandate_issues", "hard_declines"];
+
 const SCENARIOS = [
   { k: "balanced", label: "Balanced book" },
   { k: "expired_cards", label: "Expired-card wave" },
@@ -28,25 +32,46 @@ export function Live() {
   const [feed, setFeed] = useState([]);
   const [flow, setFlow] = useState(EMPTY_FLOW);
   const [error, setError] = useState(null);
+  const [auto, setAuto] = useState(true);
   const esRef = useRef(null);
+  const autoRef = useRef(true);
+  const cycleRef = useRef(0);
+  const nextTimer = useRef(null);
 
   const stop = () => {
     esRef.current?.close();
     esRef.current = null;
+    if (nextTimer.current) { clearTimeout(nextTimer.current); nextTimer.current = null; }
   };
-  useEffect(() => () => stop(), []);
+  useEffect(() => () => { autoRef.current = false; stop(); }, []);
 
-  // Auto-start a campaign the moment the page opens so a first-time visitor sees the
-  // engine actually running — never a cold, all-zero screen. ?scenario= overrides.
+  const startAuto = () => {
+    autoRef.current = true;
+    setAuto(true);
+    run(SCEN_CYCLE[cycleRef.current], n, true);
+  };
+  const stopAuto = () => {
+    autoRef.current = false;
+    setAuto(false);
+  };
+
+  // Auto-play the moment the page opens: walk every failure world on a loop, so a
+  // first-time visitor sees the full complexity build up with zero clicking.
   const autoRan = useRef(false);
   useEffect(() => {
     if (autoRan.current) return;
     autoRan.current = true;
     const p = new URLSearchParams(window.location.search);
-    setTimeout(() => run(p.get("scenario") || "balanced"), 200);
+    const start = p.get("scenario");
+    if (start && SCEN_CYCLE.includes(start)) cycleRef.current = SCEN_CYCLE.indexOf(start);
+    const single = p.get("auto") === "0"; // ?auto=0 → run one world, don't loop
+    autoRef.current = !single;
+    if (single) setAuto(false);
+    setTimeout(() => run(SCEN_CYCLE[cycleRef.current], n, !single), 200);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const run = (sc = scenario, count = n) => {
+  const run = (sc = scenario, count = n, isAuto = false) => {
+    if (!isAuto) { autoRef.current = false; setAuto(false); }
     stop();
     setScenario(sc);
     setN(count);
@@ -82,6 +107,12 @@ export function Live() {
         setRunning(false);
         setDone(true);
         stop();
+        if (autoRef.current) {
+          cycleRef.current = (cycleRef.current + 1) % SCEN_CYCLE.length;
+          nextTimer.current = setTimeout(() => {
+            if (autoRef.current) run(SCEN_CYCLE[cycleRef.current], count, true);
+          }, 1100);
+        }
       }
     };
     es.onerror = () => {
@@ -97,19 +128,26 @@ export function Live() {
   return (
     <div className="page live">
       <p className="page__lead">
-        Watch the engine actually <strong>run</strong> — a fresh stream of failed charges flows
-        through it (with a bandit learning live) racing the Razorpay fixed-retry default on the
-        same hidden ground truth. Reshape the failure world below and watch the policy react.
+        Watch the engine actually <strong>run</strong> — failed charges stream through it (with a
+        bandit learning live) racing the Razorpay fixed-retry default on the same hidden ground
+        truth. <strong>Auto-play</strong> cycles through every failure world on its own; the flow
+        graph below redraws itself as the policy adapts. Pick a world to take over.
       </p>
 
       <Card className="live__controls">
         <div className="live__scenarios">
+          <button
+            className={`chip chip--auto ${auto ? "is-active" : ""}`}
+            onClick={() => (auto ? stopAuto() : startAuto())}
+            title="Cycle through every failure world automatically"
+          >
+            {auto ? "◉" : "○"} Auto-play
+          </button>
           {SCENARIOS.map((s) => (
             <button
               key={s.k}
               className={`chip ${scenario === s.k ? "is-active" : ""}`}
-              disabled={running}
-              onClick={() => setScenario(s.k)}
+              onClick={() => run(s.k, n, false)}
             >
               {s.label}
             </button>
@@ -118,11 +156,11 @@ export function Live() {
         <div className="live__run">
           <label className="live__vol">
             <span className="mono">{n} charges</span>
-            <input type="range" min="40" max="300" step="20" value={n} disabled={running}
+            <input type="range" min="40" max="300" step="20" value={n}
               onChange={(e) => setN(Number(e.target.value))} />
           </label>
-          <Button variant="primary" onClick={run} disabled={running}>
-            {running ? "Running…" : done ? "Run again" : "Run live"} <Icon name="bolt" size={15} />
+          <Button variant="primary" onClick={() => run(scenario, n, false)} disabled={running && !auto}>
+            {auto ? "Auto-playing…" : running ? "Running…" : done ? "Run again" : "Run once"} <Icon name="bolt" size={15} />
           </Button>
         </div>
       </Card>
@@ -176,7 +214,8 @@ export function Live() {
       <div className="panel__head panel__head--loose">
         <h2>Recovery flow</h2>
         <span className="panel__legend mono">
-          {flow.n > 0 ? `${flow.n} routed` : "builds as it runs"}
+          {auto && <span className="live__world">↻ {SCENARIOS.find((s) => s.k === scenario)?.label}</span>}
+          {flow.n > 0 ? ` ${flow.n} routed` : " builds as it runs"}
         </span>
       </div>
       <Card className="live__flow-card">

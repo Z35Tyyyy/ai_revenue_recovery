@@ -1,4 +1,5 @@
 import React from "react";
+import { motion } from "framer-motion";
 
 // Live recovery-flow graph: failure type → the agent's move → outcome.
 // Nodes and edges GROW as each streamed payment flows through, so you watch the
@@ -82,24 +83,46 @@ export function LiveFlow({ flow }) {
         <text x={X.act} y={34} className="flow__hd">AGENT&rsquo;S MOVE</text>
         <text x={X.out} y={34} className="flow__hd">OUTCOME</text>
 
-        {/* edges: class → action */}
+        {/* edges: class → action — each draws itself in the first time it appears */}
         {caEdges.map((e) => (
-          <path
+          <motion.path
             key={`ca-${e.key}`}
             d={edgePath(cP[e.c].x + r(cP[e.c].count), cP[e.c].y, aP[e.a].x - r(aP[e.a].count), aP[e.a].y)}
             className={`flow__edge ${e.key === caActive ? "is-active" : ""}`}
             style={{ strokeWidth: w(e.v) }}
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 0.55, ease: "easeOut" }}
           />
         ))}
         {/* edges: action → outcome (green when recovered) */}
         {aoEdges.map((e) => (
-          <path
+          <motion.path
             key={`ao-${e.key}`}
             d={edgePath(aP[e.a].x + r(aP[e.a].count), aP[e.a].y, oP[e.o].x - r(oP[e.o].count), oP[e.o].y)}
             className={`flow__edge ${e.o === "won" ? "flow__edge--won" : ""} ${e.key === aoActive ? "is-active" : ""}`}
             style={{ strokeWidth: w(e.v) }}
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 0.55, ease: "easeOut" }}
           />
         ))}
+
+        {/* a packet that flies the current case's path failure → move → outcome */}
+        {active && cP[active.cls] && aP[active.act] && oP[active.out] && (
+          <motion.circle
+            key={`pkt-${n}`}
+            r="5"
+            className={`flow__packet ${active.out === "won" ? "is-won" : "is-lost"}`}
+            initial={{ opacity: 0 }}
+            animate={{
+              cx: [cP[active.cls].x, aP[active.act].x, oP[active.out].x],
+              cy: [cP[active.cls].y, aP[active.act].y, oP[active.out].y],
+              opacity: [0, 1, 0],
+            }}
+            transition={{ duration: 0.5, ease: "easeInOut" }}
+          />
+        )}
 
         {/* nodes */}
         {classNodes.map((nd) => (

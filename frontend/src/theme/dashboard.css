@@ -1479,8 +1479,16 @@ select.input {
   fill: var(--surface-hi, var(--surface-3));
   stroke: var(--line-3);
   stroke-width: 1.2;
-  transition: fill var(--dur-2) var(--ease), stroke var(--dur-2) var(--ease);
+  transition: fill var(--dur-2) var(--ease), stroke var(--dur-2) var(--ease), r 0.45s var(--ease);
 }
+.flow__edge.is-active { animation: flow-pulse 0.6s var(--ease); }
+@keyframes flow-pulse {
+  0% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+.flow__packet { fill: var(--cool); filter: drop-shadow(0 0 4px var(--cool)); }
+.flow__packet.is-won { fill: var(--pos); filter: drop-shadow(0 0 5px var(--pos)); }
+.flow__packet.is-lost { fill: var(--neg, #ff7878); filter: drop-shadow(0 0 4px rgba(255,120,120,0.7)); }
 .flow__node--won circle { fill: var(--pos-wash); stroke: var(--pos-line); }
 .flow__node--lost circle { fill: rgba(255, 120, 120, 0.08); stroke: var(--neg-line, var(--line-3)); }
 .flow__node.is-active circle { stroke: var(--cool); stroke-width: 2.2; }
@@ -1504,6 +1512,12 @@ select.input {
   font-family: var(--font-mono);
   font-size: 15px;
 }
+.chip--auto.is-active {
+  border-color: var(--cool);
+  color: var(--cool);
+  background: var(--cool-wash, rgba(120, 140, 255, 0.1));
+}
+.live__world { color: var(--cool); margin-right: 8px; }
 .lrow {
   display: grid;
   grid-template-columns: minmax(120px, 1.4fr) auto auto 1.4fr auto auto;
