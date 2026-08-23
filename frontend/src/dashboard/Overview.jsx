@@ -34,6 +34,7 @@ export function Overview() {
   const up = h?.uplift?.vs_fixed_retry;
   const rr = metrics?.real_recoveries;
   const proof0 = rr?.items?.[0];
+  const robust = metrics?.robustness?.summary;
 
   // Recovered-by-action attribution, computed live from the sample cases.
   const attribution = useMemo(() => {
@@ -165,13 +166,21 @@ export function Overview() {
           </span>
           <span className="proof__tag mono">resilient</span>
         </div>
-        <div className="proof">
+        <div className={`proof ${robust ? "proof--live" : ""}`}>
           <span className="proof__icon"><Icon name="check" size={15} /></span>
-          <span className="proof__text">
-            <strong>Holds across every failure world</strong> — <Link to="/dashboard/live">Live</Link>{" "}
-            auto-plays payday crunches, fraud spikes &amp; mandate lapses; the engine wins each — not a
-            simulator tuned to win.
-          </span>
+          {robust ? (
+            <span className="proof__text">
+              <strong>Wins in {robust.engine_wins}/{robust.n_worlds} randomised worlds</strong> — uplift{" "}
+              +{robust.uplift_mean_pts}±{robust.uplift_std_pts} pts (min +{robust.uplift_min_pts}). Not a
+              simulator tuned to win — <Link to="/dashboard/live">watch it live</Link>.
+            </span>
+          ) : (
+            <span className="proof__text">
+              <strong>Holds across every failure world</strong> — <Link to="/dashboard/live">Live</Link>{" "}
+              auto-plays payday crunches, fraud spikes &amp; mandate lapses; the engine wins each — not a
+              simulator tuned to win.
+            </span>
+          )}
           <span className="proof__tag mono">robust</span>
         </div>
       </div>

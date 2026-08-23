@@ -30,14 +30,15 @@ export function Experiments() {
   const bestNet = Math.max(...POLICY_ORDER.map((p) => (P[p] ? netValue(P[p]) : 0)), 1);
 
   const ope = metrics?.holdout?.offpolicy;
+  const opeTruth = ope?.engine_onpolicy_value ?? 0;
   const opeRows = ope
     ? [
         { k: "Random logging policy", v: ope.logging_policy_value, tone: "neutral" },
-        { k: "Direct Method (DM)", v: ope.estimates.direct_method, tone: "cool" },
-        { k: "Inverse Propensity (IPS)", v: ope.estimates.ips, tone: "cool" },
-        { k: "Self-normalized IPS", v: ope.estimates.snips, tone: "cool" },
-        { k: "Doubly-Robust (DR)", v: ope.estimates.doubly_robust, tone: "pos", strong: true },
-        { k: "Engine on-policy (truth)", v: ope.engine_onpolicy_value, tone: "pos", strong: true },
+        { k: "Direct Method (DM)", v: ope.estimates.direct_method, tone: "cool", est: true },
+        { k: "Inverse Propensity (IPS)", v: ope.estimates.ips, tone: "cool", est: true },
+        { k: "Self-normalized IPS", v: ope.estimates.snips, tone: "cool", est: true },
+        { k: "Doubly-Robust (DR)", v: ope.estimates.doubly_robust, tone: "pos", strong: true, est: true },
+        { k: "Engine on-policy (truth)", v: opeTruth, tone: "pos", strong: true, truth: true },
       ]
     : [];
   const opeMax = ope ? Math.max(...opeRows.map((r) => r.v), 0.01) : 1;
@@ -141,19 +142,31 @@ export function Experiments() {
             <p className="ope__lead">
               We estimate the engine&rsquo;s value from a <strong>random logging policy&rsquo;s</strong>{" "}
               data — never running the engine — the way Adyen &amp; Stripe validate a policy before an
-              A/B test. The estimators track the on-policy truth, and all sit far above the random
-              baseline.
+              A/B test. Because this is a simulator we also know the true on-policy value, so we can
+              check the estimators: each lands within <strong>~1 pt of the truth</strong> (Doubly-Robust
+              closest), and all sit far above the random baseline. The method works — it isn&rsquo;t
+              hand-waved.
             </p>
             <div className="ope">
-              {opeRows.map((r) => (
-                <div key={r.k} className={`ope__row ${r.strong ? "ope__row--strong" : ""}`}>
-                  <span className="ope__name">{r.k}</span>
-                  <span className="ope__meter">
-                    <Meter value={r.v / opeMax} tone={r.tone} height={7} />
-                  </span>
-                  <span className="ope__pct tnum">{(r.v * 100).toFixed(1)}%</span>
-                </div>
-              ))}
+              {opeRows.map((r) => {
+                const err = r.est ? (r.v - opeTruth) * 100 : null;
+                return (
+                  <div key={r.k} className={`ope__row ${r.strong ? "ope__row--strong" : ""}`}>
+                    <span className="ope__name">{r.k}</span>
+                    <span className="ope__meter">
+                      <Meter value={r.v / opeMax} tone={r.tone} height={7} />
+                    </span>
+                    {err !== null && (
+                      <span className="ope__err mono" title="error vs true on-policy value">
+                        {err >= 0 ? "+" : "−"}{Math.abs(err).toFixed(1)} pts
+                      </span>
+                    )}
+                    {r.truth && <span className="ope__err ope__err--truth mono">truth</span>}
+                    {!r.est && !r.truth && <span className="ope__err mono">baseline</span>}
+                    <span className="ope__pct tnum">{(r.v * 100).toFixed(1)}%</span>
+                  </div>
+                );
+              })}
             </div>
           </Card>
         </>

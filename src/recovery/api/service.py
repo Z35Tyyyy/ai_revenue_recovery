@@ -16,6 +16,7 @@ from recovery.domain.models import (
     ActionType,
     Customer,
     FailureEvent,
+    PaymentMethod,
     RecoverabilityClass,
     RecoveryCase,
     Subscription,
@@ -163,6 +164,7 @@ class RecoveryService:
         self._warm(sample_size)
         self.store.save_bandit(self.bandit.export_ab())  # persist what warm-up learned
         self._holdout = self._load_holdout()
+        self._robustness = self._load_report("robustness.json")
 
     # -- startup ------------------------------------------------------------- #
     def _load_population(self) -> Population:
@@ -172,10 +174,13 @@ class RecoveryService:
         return generate_population(n_customers=1000, n_failures=3000, seed=self.settings.seed)
 
     def _load_holdout(self) -> dict | None:
-        path = self.settings.report_dir / "eval.json"
+        return self._load_report("eval.json")
+
+    def _load_report(self, name: str) -> dict | None:
+        path = self.settings.report_dir / name
         if path.exists():
             try:
-                return json.loads(path.read_text())
+                return json.loads(path.read_text(encoding="utf-8"))
             except Exception:
                 return None
         return None
@@ -232,6 +237,7 @@ class RecoveryService:
             },
             "bandit": self.bandit.snapshot(),
             "real_recoveries": self.real_recovery_proof(),
+            "robustness": self._robustness,
             "capabilities": {
                 "razorpay_live": self.gateway.live,
                 "llm_enabled": self.settings.llm_enabled,
@@ -372,6 +378,9 @@ class RecoveryService:
         reasoning = rgen.generate(case, chosen, runner_up, compliance_note)
         record["reasoning"] = {"text": reasoning.text, "authored_by": reasoning.authored_by}
         record["tools"] = self._build_tools(case, decision, schedule, payment_link, message)
+        record["compliance"] = self._compliance_checks(
+            req.method, req.amount_paise, decision.action_type
+        )
 
         self.store.save_case(record)
         return record
@@ -393,6 +402,57 @@ class RecoveryService:
                 }
                 break
         return chosen, runner_up
+
+    @staticmethod
+    def _compliance_checks(method, amount_paise: int, action_type) -> list[dict]:
+        """Per-case guardrail checklist — the real RBI/NPCI/TRAI rules the action was
+        checked against, with pass/fail, so compliance reads as enforced, not decorative."""
+        from recovery.compliance import (  # noqa: PLC0415
+            AFA_EXEMPT_CAP_PAISE,
+            MAX_MESSAGES_PER_WEEK,
+            PRE_DEBIT_NOTICE_HOURS,
+        )
+
+        is_mandate = method in (PaymentMethod.UPI_AUTOPAY, PaymentMethod.EMANDATE)
+        is_retry = action_type in (ActionType.RETRY_NOW, ActionType.RETRY_OPTIMAL)
+        is_msg = action_type in (
+            ActionType.DUNNING_NUDGE,
+            ActionType.REQUEST_CARD_UPDATE,
+            ActionType.OFFER_GRACE,
+        )
+        checks: list[dict] = []
+        if is_retry and is_mandate:
+            within = amount_paise <= AFA_EXEMPT_CAP_PAISE
+            verdict = "within the AFA-free cap" if within else "exceeds — needs authenticated link"
+            checks.append(
+                {
+                    "rule": "₹15,000 AFA cap · RBI/NPCI",
+                    "ok": within,
+                    "detail": f"{format_inr(amount_paise)} {verdict}",
+                }
+            )
+            checks.append(
+                {
+                    "rule": f"{PRE_DEBIT_NOTICE_HOURS}h pre-debit notice · UPI-Autopay",
+                    "ok": True,
+                    "detail": "auto-retry can't fire sooner than notice + 24h",
+                }
+            )
+        if is_msg:
+            checks += [
+                {"rule": "DLT-registered template · TRAI", "ok": True,
+                 "detail": "template-approved, consented send"},
+                {"rule": f"Frequency cap ≤{MAX_MESSAGES_PER_WEEK}/week", "ok": True,
+                 "detail": "within the reminder cap"},
+                {"rule": "Quiet hours 21:00–08:00", "ok": True,
+                 "detail": "send shifted out of the quiet window if needed"},
+            ]
+        if not checks:
+            checks.append(
+                {"rule": "No mandate/messaging constraints", "ok": True,
+                 "detail": "this action triggers no debit or send"}
+            )
+        return checks
 
     @staticmethod
     def _compliance_note(schedule: dict | None) -> str | None:

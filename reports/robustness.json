@@ -1,0 +1,55 @@
+{
+  "summary": {
+    "n_worlds": 5,
+    "engine_wins": 5,
+    "uplift_mean_pts": 23.84,
+    "uplift_std_pts": 6.53,
+    "uplift_min_pts": 17.47,
+    "engine_rate_mean": 0.6568,
+    "seeds": [
+      9999
+    ]
+  },
+  "worlds": [
+    {
+      "world": "balanced",
+      "seed": 9999,
+      "engine_rate": 0.682,
+      "fixed_rate": 0.4787,
+      "uplift_pts": 20.33,
+      "engine_wins": true
+    },
+    {
+      "world": "expired_cards",
+      "seed": 9999,
+      "engine_rate": 0.666,
+      "fixed_rate": 0.338,
+      "uplift_pts": 32.8,
+      "engine_wins": true
+    },
+    {
+      "world": "insufficient_funds",
+      "seed": 9999,
+      "engine_rate": 0.7073,
+      "fixed_rate": 0.5273,
+      "uplift_pts": 18.0,
+      "engine_wins": true
+    },
+    {
+      "world": "hard_declines",
+      "seed": 9999,
+      "engine_rate": 0.5647,
+      "fixed_rate": 0.39,
+      "uplift_pts": 17.47,
+      "engine_wins": true
+    },
+    {
+      "world": "mandate_issues",
+      "seed": 9999,
+      "engine_rate": 0.664,
+      "fixed_rate": 0.358,
+      "uplift_pts": 30.6,
+      "engine_wins": true
+    }
+  ]
+}

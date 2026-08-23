@@ -135,6 +135,7 @@ export function AgentConsole() {
   const link = result?.payment_link; // { id, short_url, is_mock, amount }
   const reasoning = result?.reasoning; // { text, authored_by }
   const tools = result?.tools; // [{ tool, input, output, ok }]
+  const compliance = result?.compliance; // [{ rule, ok, detail }]
 
   return (
     <div className="page agent">
@@ -322,15 +323,28 @@ export function AgentConsole() {
                   </Card>
                 )}
 
-                {result.schedule && (
+                {(result.schedule || compliance?.length > 0) && (
                   <Card className="agent__sched">
                     <div className="agent__msg-head">
-                      <h3><Icon name="clock" size={15} /> Scheduled &amp; compliance</h3>
-                      <Pill tone={result.schedule.allowed ? "pos" : result.schedule.requires_afa ? "warn" : "neg"}>
-                        {result.schedule.allowed ? "scheduled" : result.schedule.requires_afa ? "needs AFA" : "blocked"}
-                      </Pill>
+                      <h3><Icon name="clock" size={15} /> Compliance &amp; schedule</h3>
+                      {result.schedule && (
+                        <Pill tone={result.schedule.allowed ? "pos" : result.schedule.requires_afa ? "warn" : "neg"}>
+                          {result.schedule.allowed ? "cleared" : result.schedule.requires_afa ? "needs AFA" : "blocked"}
+                        </Pill>
+                      )}
                     </div>
-                    {result.schedule.allowed ? (
+                    {compliance?.length > 0 && (
+                      <ul className="compliance">
+                        {compliance.map((c, i) => (
+                          <li key={i} className={`compliance__row ${c.ok ? "" : "is-warn"}`}>
+                            <Icon name={c.ok ? "check" : "bolt"} size={13} />
+                            <span className="compliance__rule">{c.rule}</span>
+                            <span className="compliance__detail">{c.detail}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {result.schedule?.allowed ? (
                       <p className="agent__sched-when">
                         Fires at{" "}
                         <strong className="mono">
@@ -338,10 +352,10 @@ export function AgentConsole() {
                         </strong>{" "}
                         (durable job #{result.schedule.job_id})
                       </p>
-                    ) : (
+                    ) : result.schedule ? (
                       <p className="agent__sched-block">{result.schedule.reason}</p>
-                    )}
-                    {result.schedule.notes?.map((n, i) => (
+                    ) : null}
+                    {result.schedule?.notes?.map((n, i) => (
                       <p key={i} className="agent__sched-note">⚖ {n}</p>
                     ))}
                   </Card>
