@@ -922,6 +922,33 @@ select.input {
 .toolrun__in { color: var(--text-4); }
 .toolrun__out { color: var(--text-2); }
 .toolrun__out.is-warn { color: var(--warn); }
+/* tools / logs segmented toggle */
+.seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-full);
+  background: var(--surface);
+}
+.seg__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-family: var(--font-mono);
+  color: var(--text-4);
+  padding: 0.35em 0.8em;
+  border-radius: var(--r-full);
+  transition: color var(--dur-2) var(--ease), background var(--dur-2) var(--ease);
+}
+.seg__btn:hover:not(:disabled):not(.is-on) { color: var(--text-2); }
+.seg__btn.is-on { background: var(--surface-hi, var(--surface-3)); color: var(--text); }
+.seg__btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.seg__n { color: var(--text-4); font-size: 0.9em; }
+.seg__btn.is-on .seg__n { color: var(--cool); }
 @media (max-width: 900px) {
   .agent__grid { grid-template-columns: 1fr; }
   .agent__form { position: static; }

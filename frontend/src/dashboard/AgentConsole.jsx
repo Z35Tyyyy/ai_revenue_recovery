@@ -48,6 +48,7 @@ export function AgentConsole() {
   const [ffBusy, setFfBusy] = useState(false);
   const [poll, setPoll] = useState(null);
   const [pollBusy, setPollBusy] = useState(false);
+  const [traceView, setTraceView] = useState("tools"); // "tools" | "logs"
   const ctrlRef = useRef(null);
 
   const fastForward = async () => {
@@ -408,38 +409,60 @@ export function AgentConsole() {
                   </Card>
                 )}
 
-                {(tools?.length > 0 || result.trace?.length > 0) && (
-                  <Card className="agent__tools">
-                    <div className="agent__msg-head">
-                      <h3><Icon name="bolt" size={15} /> Agent run · tools called</h3>
-                      {tools?.length > 0 && <Pill tone="neutral">{tools.length} calls</Pill>}
-                    </div>
-                    {tools?.length > 0 ? (
-                      <ol className="toolrun">
-                        {tools.map((t, i) => (
-                          <li key={i} className="toolrun__row">
-                            <span className="toolrun__n mono">{String(i + 1).padStart(2, "0")}</span>
-                            <span className="toolrun__name mono">{t.tool}</span>
-                            <span className="toolrun__io">
-                              <span className="toolrun__in mono">{t.input}</span>
-                              <Icon name="arrow" size={12} />
-                              <span className={`toolrun__out mono ${t.ok ? "" : "is-warn"}`}>{t.output}</span>
-                            </span>
-                          </li>
-                        ))}
-                      </ol>
-                    ) : (
-                      <ol className="trace">
-                        {result.trace?.map((t, i) => (
-                          <li key={i} className="trace__line">
-                            <span className="trace__n mono">{String(i + 1).padStart(2, "0")}</span>
-                            <span className="trace__t">{t}</span>
-                          </li>
-                        ))}
-                      </ol>
-                    )}
-                  </Card>
-                )}
+                {(tools?.length > 0 || result.trace?.length > 0) && (() => {
+                  const hasTools = tools?.length > 0;
+                  const hasLogs = result.trace?.length > 0;
+                  const view = traceView === "logs" && hasLogs ? "logs" : hasTools ? "tools" : "logs";
+                  return (
+                    <Card className="agent__tools">
+                      <div className="agent__msg-head">
+                        <h3><Icon name="bolt" size={15} /> Agent run</h3>
+                        <div className="seg">
+                          <button
+                            type="button"
+                            className={`seg__btn ${view === "tools" ? "is-on" : ""}`}
+                            onClick={() => setTraceView("tools")}
+                            disabled={!hasTools}
+                          >
+                            tools {hasTools && <span className="seg__n">{tools.length}</span>}
+                          </button>
+                          <button
+                            type="button"
+                            className={`seg__btn ${view === "logs" ? "is-on" : ""}`}
+                            onClick={() => setTraceView("logs")}
+                            disabled={!hasLogs}
+                          >
+                            logs {hasLogs && <span className="seg__n">{result.trace.length}</span>}
+                          </button>
+                        </div>
+                      </div>
+                      {view === "tools" ? (
+                        <ol className="toolrun">
+                          {tools.map((t, i) => (
+                            <li key={i} className="toolrun__row">
+                              <span className="toolrun__n mono">{String(i + 1).padStart(2, "0")}</span>
+                              <span className="toolrun__name mono">{t.tool}</span>
+                              <span className="toolrun__io">
+                                <span className="toolrun__in mono">{t.input}</span>
+                                <Icon name="arrow" size={12} />
+                                <span className={`toolrun__out mono ${t.ok ? "" : "is-warn"}`}>{t.output}</span>
+                              </span>
+                            </li>
+                          ))}
+                        </ol>
+                      ) : (
+                        <ol className="trace">
+                          {result.trace?.map((t, i) => (
+                            <li key={i} className="trace__line">
+                              <span className="trace__n mono">{String(i + 1).padStart(2, "0")}</span>
+                              <span className="trace__t">{t}</span>
+                            </li>
+                          ))}
+                        </ol>
+                      )}
+                    </Card>
+                  );
+                })()}
               </motion.div>
             )}
           </AnimatePresence>
