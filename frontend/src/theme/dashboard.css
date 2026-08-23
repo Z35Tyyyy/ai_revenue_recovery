@@ -1455,6 +1455,55 @@ select.input {
 
 .live__feed { padding: 6px; }
 .live__feed-empty { padding: var(--s-8); text-align: center; color: var(--text-4); }
+
+/* live recovery-flow graph */
+.live__flow-card { padding: var(--s-4) var(--s-5); margin-bottom: var(--s-6); }
+.flow__svg { width: 100%; height: auto; display: block; }
+.flow__hd {
+  text-anchor: middle;
+  fill: var(--text-4);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.12em;
+}
+.flow__edge {
+  fill: none;
+  stroke: var(--line-3);
+  opacity: 0.5;
+  transition: opacity var(--dur-2) var(--ease), stroke var(--dur-2) var(--ease);
+}
+.flow__edge--won { stroke: var(--pos); opacity: 0.32; }
+.flow__edge.is-active { opacity: 0.95; stroke: var(--cool); }
+.flow__edge--won.is-active { stroke: var(--pos); opacity: 0.95; }
+.flow__node circle {
+  fill: var(--surface-hi, var(--surface-3));
+  stroke: var(--line-3);
+  stroke-width: 1.2;
+  transition: fill var(--dur-2) var(--ease), stroke var(--dur-2) var(--ease);
+}
+.flow__node--won circle { fill: var(--pos-wash); stroke: var(--pos-line); }
+.flow__node--lost circle { fill: rgba(255, 120, 120, 0.08); stroke: var(--neg-line, var(--line-3)); }
+.flow__node.is-active circle { stroke: var(--cool); stroke-width: 2.2; }
+.flow__node--won.is-active circle { stroke: var(--pos); }
+.flow__label {
+  text-anchor: middle;
+  fill: var(--text-3);
+  font-size: 13px;
+  font-weight: 600;
+}
+.flow__count {
+  text-anchor: middle;
+  fill: var(--text);
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+.flow__node--won .flow__count { fill: var(--pos); }
+.flow__empty {
+  text-anchor: middle;
+  fill: var(--text-4);
+  font-family: var(--font-mono);
+  font-size: 15px;
+}
 .lrow {
   display: grid;
   grid-template-columns: minmax(120px, 1.4fr) auto auto 1.4fr auto auto;

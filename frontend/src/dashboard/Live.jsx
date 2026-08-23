@@ -3,6 +3,9 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Card, Pill, Meter, Icon, Button, CLASS_TONE } from "../components/ui.jsx";
 import { formatINR } from "../api.js";
 import { classLabel, actionLabel } from "../lib/labels.js";
+import { LiveFlow } from "./LiveFlow.jsx";
+
+const EMPTY_FLOW = { n: 0, cls: {}, act: {}, ca: {}, ao: {}, won: 0, lost: 0, active: null };
 
 const SCENARIOS = [
   { k: "balanced", label: "Balanced book" },
@@ -23,6 +26,7 @@ export function Live() {
   const [eng, setEng] = useState(EMPTY);
   const [base, setBase] = useState(EMPTY);
   const [feed, setFeed] = useState([]);
+  const [flow, setFlow] = useState(EMPTY_FLOW);
   const [error, setError] = useState(null);
   const esRef = useRef(null);
 
@@ -53,6 +57,7 @@ export function Live() {
     setEng(EMPTY);
     setBase(EMPTY);
     setFeed([]);
+    setFlow(EMPTY_FLOW);
     const es = new EventSource(`/api/campaign/stream?n=${count}&scenario=${sc}`);
     esRef.current = es;
     es.onmessage = (e) => {
@@ -62,6 +67,17 @@ export function Live() {
         setBase(ev.totals.baseline);
         setProgress(ev.i + 1);
         setFeed((f) => [{ ...ev.case, e: ev.engine.recovered, b: ev.baseline.recovered, action: ev.engine.action }, ...f].slice(0, 9));
+        const cls = ev.case.class, actn = ev.engine.action, out = ev.engine.recovered ? "won" : "lost";
+        setFlow((f) => ({
+          n: f.n + 1,
+          cls: { ...f.cls, [cls]: (f.cls[cls] || 0) + 1 },
+          act: { ...f.act, [actn]: (f.act[actn] || 0) + 1 },
+          ca: { ...f.ca, [`${cls}>${actn}`]: (f.ca[`${cls}>${actn}`] || 0) + 1 },
+          ao: { ...f.ao, [`${actn}>${out}`]: (f.ao[`${actn}>${out}`] || 0) + 1 },
+          won: f.won + (out === "won" ? 1 : 0),
+          lost: f.lost + (out === "won" ? 0 : 1),
+          active: { cls, act: actn, out },
+        }));
       } else if (ev.type === "done") {
         setRunning(false);
         setDone(true);
@@ -155,6 +171,17 @@ export function Live() {
           </div>
         </Card>
       </div>
+
+      {/* growing recovery-flow graph — each payment routes failure → move → outcome */}
+      <div className="panel__head panel__head--loose">
+        <h2>Recovery flow</h2>
+        <span className="panel__legend mono">
+          {flow.n > 0 ? `${flow.n} routed` : "builds as it runs"}
+        </span>
+      </div>
+      <Card className="live__flow-card">
+        <LiveFlow flow={flow} />
+      </Card>
 
       {/* live case feed */}
       <div className="panel__head panel__head--loose">
