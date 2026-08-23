@@ -212,8 +212,10 @@ export function Recoveries() {
   return (
     <div className="page">
       <p className="page__lead">
-        Every decision the engine made, as an explainable log — click a row for the full reasoning
-        trace. {!live && <span className="page__note">Showing sample episodes (API offline).</span>}
+        Every decision from the recovery batch — the audit trail behind the headline result. Click a
+        row for the full reasoning trace. (Cases you run yourself in the Agent tab stay there, so this
+        log always matches the measured batch.){" "}
+        {!live && <span className="page__note">Showing sample episodes (API offline).</span>}
       </p>
 
       <div className="rec__toolbar">
