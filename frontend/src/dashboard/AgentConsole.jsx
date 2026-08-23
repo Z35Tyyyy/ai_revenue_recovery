@@ -85,6 +85,18 @@ export function AgentConsole() {
 
   useEffect(() => () => ctrlRef.current?.abort(), []);
 
+  // Shareable deep-link: /dashboard/agent?run=1 auto-runs the default case so a
+  // reviewer (or the pitch) lands straight on a live diagnosis + reasoning + tools.
+  const autoRan = useRef(false);
+  useEffect(() => {
+    if (autoRan.current) return;
+    const p = new URLSearchParams(window.location.search);
+    if (p.get("run") === "1") {
+      autoRan.current = true;
+      setTimeout(() => run(), 150);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const set = (k) => (e) => {
     const v = e.target.type === "checkbox" ? e.target.checked : e.target.value;
     setForm((f) => ({ ...f, [k]: v }));
@@ -120,12 +132,19 @@ export function AgentConsole() {
   const reason = reasons.find((r) => r.code === form.reason_code);
   const dunning = result?.message; // { text, language, channel, authored_by }
   const link = result?.payment_link; // { id, short_url, is_mock, amount }
+  const reasoning = result?.reasoning; // { text, authored_by }
+  const tools = result?.tools; // [{ tool, input, output, ok }]
 
   return (
     <div className="page agent">
       <p className="page__lead">
         Hand the engine a live failed charge. It diagnoses, predicts, decides, and — with keys —
         authors a real recovery.
+      </p>
+      <p className="agent__coverage mono">
+        Coverage · <strong>6</strong> failure classes · <strong>5</strong> payment methods ·{" "}
+        <strong>8</strong> Indian languages · <strong>3</strong> channels — every action
+        RBI / AFA / DLT-checked before it fires.
       </p>
 
       <div className="agent__grid">
@@ -268,6 +287,24 @@ export function AgentConsole() {
                   )}
                 </Card>
 
+                {reasoning?.text && (
+                  <Card className="agent__reasoning">
+                    <div className="agent__msg-head">
+                      <h3><Icon name="spark" size={15} /> Agent reasoning</h3>
+                      {reasoning.authored_by && (
+                        <Pill tone={reasoning.authored_by === "template" ? "neutral" : "cool"}>
+                          {reasoning.authored_by}
+                        </Pill>
+                      )}
+                    </div>
+                    <p className="agent__reasoning-body">{reasoning.text}</p>
+                    <p className="agent__reasoning-foot mono">
+                      Rationale over the real decision — the ML policy &amp; bandit choose the action;
+                      the model explains it.
+                    </p>
+                  </Card>
+                )}
+
                 {result.resilience && (
                   <Card className="resilience">
                     <div className="agent__msg-head">
@@ -371,17 +408,38 @@ export function AgentConsole() {
                   </Card>
                 )}
 
-                <Card className="agent__trace">
-                  <h3>Reasoning trace</h3>
-                  <ol className="trace">
-                    {result.trace?.map((t, i) => (
-                      <li key={i} className="trace__line">
-                        <span className="trace__n mono">{String(i + 1).padStart(2, "0")}</span>
-                        <span className="trace__t">{t}</span>
-                      </li>
-                    ))}
-                  </ol>
-                </Card>
+                {(tools?.length > 0 || result.trace?.length > 0) && (
+                  <Card className="agent__tools">
+                    <div className="agent__msg-head">
+                      <h3><Icon name="bolt" size={15} /> Agent run · tools called</h3>
+                      {tools?.length > 0 && <Pill tone="neutral">{tools.length} calls</Pill>}
+                    </div>
+                    {tools?.length > 0 ? (
+                      <ol className="toolrun">
+                        {tools.map((t, i) => (
+                          <li key={i} className="toolrun__row">
+                            <span className="toolrun__n mono">{String(i + 1).padStart(2, "0")}</span>
+                            <span className="toolrun__name mono">{t.tool}</span>
+                            <span className="toolrun__io">
+                              <span className="toolrun__in mono">{t.input}</span>
+                              <Icon name="arrow" size={12} />
+                              <span className={`toolrun__out mono ${t.ok ? "" : "is-warn"}`}>{t.output}</span>
+                            </span>
+                          </li>
+                        ))}
+                      </ol>
+                    ) : (
+                      <ol className="trace">
+                        {result.trace?.map((t, i) => (
+                          <li key={i} className="trace__line">
+                            <span className="trace__n mono">{String(i + 1).padStart(2, "0")}</span>
+                            <span className="trace__t">{t}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                  </Card>
+                )}
               </motion.div>
             )}
           </AnimatePresence>

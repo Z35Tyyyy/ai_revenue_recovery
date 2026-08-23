@@ -871,6 +871,57 @@ select.input {
 .agent__sched-block { font-size: var(--fs-sm); color: var(--neg); }
 .agent__sched-note { font-size: var(--fs-xs); color: var(--warn); margin-top: 6px; }
 .agent__trace { padding: var(--s-5); }
+
+/* coverage line under the Agent lead (breadth at a glance) */
+.agent__coverage {
+  margin: calc(-1 * var(--s-3)) 0 var(--s-5);
+  font-size: var(--fs-xs);
+  color: var(--text-4);
+  letter-spacing: 0.01em;
+}
+.agent__coverage strong { color: var(--text-2); font-weight: 600; }
+
+/* LLM reasoning card — the agentic centrepiece */
+.agent__reasoning { padding: var(--s-5); border-color: var(--cool-line, var(--line-3)); }
+.agent__reasoning-body {
+  font-size: var(--fs-body);
+  color: var(--text);
+  line-height: 1.6;
+  margin-top: var(--s-2);
+}
+.agent__reasoning-foot {
+  margin-top: var(--s-3);
+  font-size: var(--fs-xs);
+  color: var(--text-4);
+}
+
+/* agent tool-call timeline */
+.agent__tools { padding: var(--s-5); }
+.toolrun { margin-top: var(--s-2); display: flex; flex-direction: column; gap: 2px; }
+.toolrun__row {
+  display: grid;
+  grid-template-columns: auto minmax(150px, 190px) 1fr;
+  align-items: center;
+  gap: var(--s-3);
+  padding: 0.5em 0;
+  border-bottom: 1px solid var(--line-1, rgba(255, 255, 255, 0.04));
+  font-size: var(--fs-sm);
+}
+.toolrun__row:last-child { border-bottom: none; }
+.toolrun__n { color: var(--text-4); font-size: var(--fs-xs); }
+.toolrun__name { color: var(--cool); font-weight: 600; }
+.toolrun__io {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 0;
+  color: var(--text-3);
+  flex-wrap: wrap;
+}
+.toolrun__io svg { color: var(--text-4); flex: none; }
+.toolrun__in { color: var(--text-4); }
+.toolrun__out { color: var(--text-2); }
+.toolrun__out.is-warn { color: var(--warn); }
 @media (max-width: 900px) {
   .agent__grid { grid-template-columns: 1fr; }
   .agent__form { position: static; }
@@ -1084,6 +1135,11 @@ select.input {
   color: var(--text-2);
 }
 .repro svg { color: var(--pos); flex: none; }
+.repro li strong { color: var(--text); }
+.repro--cols { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3) var(--s-6); }
+.repro--cols li { align-items: flex-start; }
+.repro--cols li svg { margin-top: 3px; }
+@media (max-width: 760px) { .repro--cols { grid-template-columns: 1fr; } }
 @media (max-width: 960px) {
   .caps-grid { grid-template-columns: repeat(2, 1fr); }
 }

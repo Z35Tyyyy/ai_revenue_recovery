@@ -25,7 +25,8 @@ export function Settings() {
     <div className="page">
       <p className="page__lead">
         Runtime capabilities and the reproducibility contract. The engine runs fully in simulation
-        with zero credentials; keys only enable the live path.
+        with zero credentials; keys only enable the live path. The data is synthetic by design
+        (Track 3&rsquo;s ask) but <strong>calibrated to real benchmarks</strong>, not invented.
       </p>
 
       <div className="caps-grid">
@@ -86,6 +87,19 @@ export function Settings() {
           </ul>
         </Card>
       </div>
+
+      <Card className="panel">
+        <div className="panel__head">
+          <h2>Calibrated to reality</h2>
+          <Pill tone="cool">synthetic · benchmark-tuned</Pill>
+        </div>
+        <ul className="repro repro--cols">
+          <li><Icon name="check" size={15} /> 20–40% involuntary-churn rate — the documented range for recurring businesses</li>
+          <li><Icon name="check" size={15} /> Failure-reason mix modelled on real card / UPI-autopay / e-mandate decline taxonomies</li>
+          <li><Icon name="check" size={15} /> Salary-day balance troughs &amp; issuer soft-decline patterns reflect Indian retail behaviour</li>
+          <li><Icon name="check" size={15} /> Amounts, tenures &amp; the 8-language / multi-city spread drawn from realistic distributions</li>
+        </ul>
+      </Card>
     </div>
   );
 }

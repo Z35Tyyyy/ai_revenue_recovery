@@ -21,9 +21,11 @@ from recovery.domain.models import (
     Subscription,
     format_inr,
 )
+from recovery.domain.taxonomy import classify_reason
 from recovery.eval.executor import SimulatedExecutor
 from recovery.eval.harness import build_case
 from recovery.llm.dunning import DunningGenerator
+from recovery.llm.reasoning import ReasoningGenerator
 from recovery.ml.models import RecoveryModel, TimingModel
 from recovery.policy.bandit import ContextualBandit
 from recovery.policy.engine import Decision, RecoveryEngine
@@ -134,6 +136,9 @@ class RecoveryService:
         # engine forces templates so startup stays fast and offline.
         self.dunning = DunningGenerator()
         self._template_dunning = DunningGenerator(force_templates=True)  # chaos/LLM fallback
+        # LLM reasoning layer: explains (never makes) the engine's decision.
+        self.reasoning = ReasoningGenerator()
+        self._template_reasoning = ReasoningGenerator(force_templates=True)
         # Chaos switches — deliberately fail a dependency to demo graceful fallbacks.
         self._chaos = {"llm": False, "gateway": False}
         self.gateway = get_gateway(self.settings)
@@ -346,8 +351,9 @@ class RecoveryService:
         if resilience:
             record["resilience"] = resilience
         # Durable + real: schedule the decided action (compliance-checked) and persist.
+        schedule = None
         if decision and decision.action_type != ActionType.GIVE_UP:
-            record["schedule"] = self.scheduler.schedule(
+            schedule = self.scheduler.schedule(
                 case.id,
                 decision.action_type,
                 req.method,
@@ -356,8 +362,136 @@ class RecoveryService:
                 decision.when,
                 now,
             )
+            record["schedule"] = schedule
+
+        # Agentic layer: an LLM rationale for the decision, plus the tool-call timeline
+        # the agent actually ran. The ML/bandit MAKES the call; the LLM explains it.
+        chosen, runner_up = self._reasoning_context(decision)
+        compliance_note = self._compliance_note(schedule)
+        rgen = self._template_reasoning if self._chaos["llm"] else self.reasoning
+        reasoning = rgen.generate(case, chosen, runner_up, compliance_note)
+        record["reasoning"] = {"text": reasoning.text, "authored_by": reasoning.authored_by}
+        record["tools"] = self._build_tools(case, decision, schedule, payment_link, message)
+
         self.store.save_case(record)
         return record
+
+    @staticmethod
+    def _reasoning_context(decision) -> tuple[dict, dict | None]:
+        chosen = {
+            "action": decision.action_type.value,
+            "prob": decision.prob,
+            "ev_paise": decision.ev_paise,
+        }
+        runner_up = None
+        for cand in getattr(decision, "candidates", None) or []:
+            if cand.action_type.value != chosen["action"]:
+                runner_up = {
+                    "action": cand.action_type.value,
+                    "prob": cand.prob,
+                    "ev_paise": cand.ev_paise,
+                }
+                break
+        return chosen, runner_up
+
+    @staticmethod
+    def _compliance_note(schedule: dict | None) -> str | None:
+        if not schedule:
+            return None
+        if schedule.get("notes"):
+            return "; ".join(schedule["notes"])
+        if schedule.get("requires_afa"):
+            return "Above the ₹15,000 AFA cap — needs additional-factor authentication."
+        if schedule.get("allowed"):
+            return "Within RBI limits (24h pre-debit notice, ₹15k AFA cap)."
+        return schedule.get("reason")
+
+    def _build_tools(
+        self, case, decision, schedule: dict | None, payment_link, message
+    ) -> list[dict]:
+        """The agent's tool-call timeline — each output is a real value from this run."""
+        reason = classify_reason(case.failure.reason_code)
+        slot = case.predicted_best_slot
+        tools = [
+            {
+                "tool": "diagnose_failure",
+                "input": case.failure.reason_code,
+                "output": (
+                    f"{case.recoverability_class.value} · "
+                    f"retry {'helps' if reason.retry_helps else 'is futile'}"
+                ),
+                "ok": True,
+            },
+            {
+                "tool": "predict_recovery_probability",
+                "input": "ML · gradient-boosted",
+                "output": f"{round((case.predicted_recover_prob or 0) * 100)}% base prob",
+                "ok": True,
+            },
+            {
+                "tool": "predict_optimal_time",
+                "input": "ML · timing model",
+                "output": (f"best slot: {slot}" if slot else "now"),
+                "ok": True,
+            },
+            {
+                "tool": "score_actions",
+                "input": f"{len(getattr(decision, 'candidates', None) or [])} candidates",
+                "output": (
+                    f"best: {decision.action_type.value} "
+                    f"(EV {format_inr(int(decision.ev_paise or 0))})"
+                ),
+                "ok": True,
+            },
+            {
+                "tool": "consult_bandit",
+                "input": f"class={case.recoverability_class.value}",
+                "output": "Thompson-sampled posterior applied",
+                "ok": True,
+            },
+        ]
+        if schedule is not None:
+            comp = (
+                "allowed"
+                if schedule.get("allowed")
+                else ("needs AFA" if schedule.get("requires_afa") else "blocked")
+            )
+            tools.append(
+                {
+                    "tool": "check_compliance",
+                    "input": "RBI 24h notice · ₹15k AFA · DLT",
+                    "output": comp,
+                    "ok": bool(schedule.get("allowed")),
+                }
+            )
+        if payment_link:
+            tools.append(
+                {
+                    "tool": "create_payment_link",
+                    "input": f"Razorpay {'mock' if payment_link.get('is_mock') else 'test-mode'}",
+                    "output": payment_link.get("id") or "created",
+                    "ok": True,
+                }
+            )
+        if message:
+            tools.append(
+                {
+                    "tool": "author_message",
+                    "input": f"{message.get('channel')} · {message.get('language')}",
+                    "output": f"authored by {message.get('authored_by')}",
+                    "ok": True,
+                }
+            )
+        if schedule is not None and schedule.get("allowed"):
+            tools.append(
+                {
+                    "tool": "schedule_execution",
+                    "input": "durable job",
+                    "output": f"job #{schedule.get('job_id')}",
+                    "ok": True,
+                }
+            )
+        return tools
 
     def _create_link_resilient(self, case: RecoveryCase):
         """Create a payment link without ever raising. Retries once on a transient
