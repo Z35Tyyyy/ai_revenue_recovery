@@ -2,184 +2,344 @@
 
 # ♻️ AI Revenue Recovery
 
-### An agentic engine that recovers failed recurring payments on Razorpay
+### An agent that wins back failed recurring payments on Razorpay
 
-**Razorpay AI Buildathon 2026 — Track 3: AI Revenue Recovery**
+**Razorpay AI Buildathon 2026 — Track 3**
 
-*Diagnose → Predict → Decide → Act → Measure — a closed loop that turns involuntary churn back into revenue.*
+*Everyone maximises recovery **rate** — the wrong number. This agent recovers more money with **half the bank retries**, because it optimises what the merchant **keeps**, not gross volume.*
 
 </div>
 
 ---
 
-## The experience
+## 📖 Read this first — what is this, in plain English?
 
-The product ships as two deliberately distinct surfaces. A **cinematic, scroll-driven story** explains the problem and the intelligence — then a calm, data-driven **operating console** where you actually run recoveries.
+Imagine you run a subscription business — a music app, a SaaS tool, a gym. Every month you auto-charge your customers' cards or UPI. **Some of those charges fail** — the card expired, there wasn't enough money on that particular day, the bank had a hiccup, a UPI mandate got paused.
 
-![Landing](docs/landing.png)
+Here's the painful part: **the customer never decided to leave.** They still want the service. The *payment* just didn't go through. This silent, accidental loss is called **involuntary churn**, and it quietly bleeds **20–40% of recurring revenue** out of subscription businesses.
 
-Story mode (`/`) → **Enter the console →** → operating mode (`/dashboard`): Overview, **Live**, Recoveries, Agent, Learning, Experiments, Settings.
+What does everyone do about it today? Something dumb: **retry the exact same charge tomorrow, at the same time, for every failure.** Retrying an *expired card* is pointless. Retrying an *empty account* mid-month is pointless. But retrying that same empty account *on the customer's salary day* would sail through — and nobody bothers to figure that out.
 
-![Console — Overview](docs/dashboard.png)
+**This project is an AI agent that figures it out — for every single failed charge.** It looks at *why* the payment failed, predicts the smartest way (and moment) to win it back, does it, learns from what happened, and — crucially — **knows when to stop** instead of annoying a good customer or burning money on a hopeless case.
 
-The **Live** page is where it stops being a report and starts being a *system*: a fresh stream of failed charges runs through the real engine in real time — a bandit learning as it goes — **racing the Razorpay fixed-retry default** on the same hidden ground truth. Reshape the failure world (an *expired-card wave*, a *payday crunch*, a *fraud spike*) and watch the policy react and the numbers recompute live. On the expired-card wave the engine recovers ~65% vs the default's ~37%, using a third of the retries — computed in front of you, not read from a file.
-
-Every recovery opens a drawer with the agent's full reasoning trace — a decision log, not a debug dump.
-
-![Console — Recoveries](docs/recoveries.png)
-
-The **Agent** page hands the engine a failed charge live — recommended action, confidence, alternatives, the reasoning trace, and a generated multilingual message with a payment link:
-
-![Console — Agent](docs/agent.png)
-
-**Experiments** compares every policy on identical ground truth; **Learning** shows what the bandit converged to per failure class.
-
-![Console — Experiments](docs/experiments.png)
+> 💡 **The one idea to remember:** *recovery rate* (how many charges you claw back) is the wrong scoreboard. It ignores the **cost** of clawing them back — bank retries have fees and penalties, and pestering customers makes them cancel for real. This agent optimises **net value**: money recovered *minus* the cost to recover it. It ends up recovering **more money with far less effort.** That's the whole thesis: **value, not volume.**
 
 ---
 
-## The problem
+## 🩸 The problem, a little deeper
 
-Subscription and recurring businesses lose **20–40% of recurring revenue to *involuntary* churn** — payments that fail for *recoverable* reasons: insufficient funds on debit day, an expired card, a bank in downtime, a soft "do-not-honour" decline, a UPI-autopay mandate hiccup. The customer never *chose* to leave; the payment just didn't go through.
+A recurring payment can fail for many reasons, and they are **not** the same problem:
 
-Today the default response is blunt:
+| What happened | Retrying blindly is… | The smart move |
+|---|---|---|
+| No money in the account today | …a coin flip | Wait for **salary day**, then retry |
+| Card expired / blocked | …useless | Ask the customer to **update the card** |
+| UPI mandate paused | …useless | Send a **re-authorisation** nudge |
+| Bank had a momentary glitch | …fine, but mistimed | Retry **now** (or in 20 min) |
+| Card reported stolen | …useless & annoying | **Stop.** Don't waste retries |
 
-- **Fixed-schedule retries.** Razorpay auto-retries the next day. One dumb retry, same time, for every failure — whether the card is expired (retrying is pointless) or the customer is simply mid-month broke (retry on salary day and it sails through).
-- **Generic dunning.** A single templated "your payment failed" email in English, to everyone, regardless of *why* it failed or *who* the customer is.
+The market leaders (Stripe Smart Retries, Butter, FlyCode) use machine learning to pick a better retry moment and recover meaningfully more. **But there is no open, transparent, India-native version of this** — one that understands salary cycles, UPI-autopay mandates, regional-language reminders, and India's payment regulations. That gap is what this project fills.
 
-The state of the art (Stripe Smart Retries, Butter, FlyCode) uses ML to pick the optimal retry moment per card and orchestrate smarter dunning — and recovers meaningfully more. **There is no open, transparent, India-native version of this.** That's what this project is.
+---
 
-## The idea in one loop
+## 🔁 How it works — the closed loop
 
-For **every** failed recurring charge, an agent runs a closed decision loop:
+For **every** failed charge, the agent runs the same five-step loop. Think of it as a tiny, tireless recovery analyst working each case:
 
+```mermaid
+---
+config:
+  look: handDrawn
+  theme: neutral
+---
+flowchart LR
+  A([💳 Payment fails]) --> B["1 · DIAGNOSE<br/>what kind of<br/>failure is this?"]
+  B --> C["2 · PREDICT<br/>chance of recovery<br/>+ best moment"]
+  C --> D["3 · DECIDE<br/>the highest-<b>value</b><br/>action"]
+  D --> E["4 · ACT<br/>retry · re-auth ·<br/>remind · pay-link"]
+  E --> F["5 · MEASURE<br/>did it recover?"]
+  F -. "learns from the outcome ↺" .-> D
 ```
-  payment.failed ─▶  ┌───────────┐   ┌──────────┐   ┌──────────┐   ┌────────┐   ┌──────────┐
-  (Razorpay          │ DIAGNOSE  │─▶ │ PREDICT  │─▶ │  DECIDE  │─▶ │  ACT   │─▶ │ MEASURE  │
-   webhook)          │ taxonomy  │   │  ML: P(  │   │ agentic  │   │ retry /│   │ outcome  │
-                     │ of failure│   │ recover),│   │ policy   │   │ dunning│   │ feeds    │
-                     │ reason    │   │ best slot│   │ (bandit) │   │ + link │   │ back ↺   │
-                     └───────────┘   └──────────┘   └──────────┘   └────────┘   └──────────┘
+
+**In plain terms:**
+
+1. **Diagnose** — read Razorpay's error code and sort the failure into a *type* (no-funds, dead-card, paused-mandate, bank-glitch, hard-decline). Different types need completely different treatment.
+2. **Predict** — two small ML models score the case: *how likely is this to recover?* and *when is the best moment to try?* (salary-cycle aware).
+3. **Decide** — the agent picks the single action with the best **expected value** — the money it would win, weighted by the chance it works and the customer's future worth, *minus* the cost of trying. (More on the "brain" below.)
+4. **Act** — it schedules the retry for the right moment, and/or writes a friendly reminder in the customer's language with a one-tap payment link.
+5. **Measure** — when the outcome comes back (paid or not), the agent **learns** — so next time it's a little smarter for that kind of case.
+
+---
+
+## 🌳 What the agent actually decides
+
+The magic isn't "retry harder" — it's routing each *kind* of failure to the *right* action, and **stopping** on the hopeless ones:
+
+```mermaid
+---
+config:
+  look: handDrawn
+  theme: neutral
+---
+flowchart LR
+  F1[💸 Insufficient funds] --> A1[Wait for payday,<br/>then retry]
+  F2[💳 Expired / dead card] --> A2[Ask customer to<br/>update card]
+  F3[🔗 Paused mandate] --> A3[Send re-auth<br/>reminder]
+  F4[⚡ Bank glitch] --> A4[Retry now]
+  F5[🚫 Hard decline] --> A5[STOP —<br/>don't waste retries]
+  A1 --> R1((✅ Recovered))
+  A2 --> R1
+  A3 --> R1
+  A4 --> R1
+  A5 --> R2((🕊️ Let go,<br/>honestly))
 ```
 
-1. **Diagnose** — consume `payment.failed` / `subscription.halted` webhooks and map raw Razorpay error reason codes into a *recoverability taxonomy* (soft-retry vs. needs-card-update vs. needs-reauth vs. hard-decline vs. transient).
-2. **Predict** — an ML model scores each failure: `P(recover)`, the **optimal retry time** (day-of-week × hour, salary-cycle aware), and expected time-to-recover.
-3. **Decide** — a contextual-bandit **policy** picks the action per customer to maximise *expected recovered revenue*: retry-now, retry-at-best-slot, switch payment method, dunning nudge, request card update, or offer a grace link.
-4. **Act** — generate a **personalised, multilingual dunning message** (Claude, with a deterministic fallback) and attach a **real Razorpay test-mode Payment Link** for one-tap recovery; dispatch on the best channel (email / WhatsApp / SMS).
-5. **Measure** — a simulator + **held-out evaluation** proves the uplift in recovery rate and rupees recovered versus naive baselines. Every decision is logged as an explainable **agent trace**.
+> 💡 Knowing **when to stop** is as valuable as knowing when to act. Every needless retry costs a bank fee, risks a penalty on your merchant account, and nudges a good customer toward cancelling for real. A system that only ever "tries harder" is optimising the wrong thing.
 
-## Why this wins Track 3
+---
 
-| Judging signal | How we hit it |
-|---|---|
-| *"Something real, measured on a held-out test set"* (the buildathon's stated bar) | Frozen holdout, engine vs. **4** fair baselines (incl. a window-matched retrier) — *and* an **off-policy (IPS / Doubly-Robust) evaluation** that proves the lift counterfactually from logged data, the way Adyen/Stripe validate before deploy. |
-| Genuine AI, not a CRUD dunning tool | Trained ML for recovery-probability + optimal-timing, a learning bandit (Thompson + a LinUCB contextual bandit), and an LLM dunning writer — each carrying its weight. |
-| Defensible architecture | **Fail-closed** signed webhooks, idempotent event handling, a **durable SQLite store** (cases + persisted learning), and a **scheduler that actually executes** the chosen retry/nudge at the compliant time. |
-| **India-native** (what a Stripe clone can't claim) | Salary-cycle-aware retry timing, UPI-autopay mandate handling, Hindi/regional dunning — **enforced** by a compliance layer (RBI 24h pre-debit notice, ₹15k AFA cap, TRAI DLT). |
-| Uses Razorpay's own platform | Test-mode Customers, Orders, Payment Links, and webhooks; recovers a **real** test payment live in the demo. |
+## 🔌 Closing the loop for real (not a simulation)
 
-## Architecture
+The agent doesn't just *simulate* recovery — it closes one **real** loop through Razorpay's live test API, with **no webhook tunnel required**:
 
+```mermaid
+---
+config:
+  look: handDrawn
+  theme: neutral
+---
+flowchart LR
+  D[Agent decides:<br/>send a pay-link] --> L[Create a <b>real</b><br/>Razorpay test link]
+  L --> P[Customer pays<br/>the link]
+  P --> H{How we hear<br/>it was paid}
+  H -->|"webhook<br/>(payment.captured)"| C[Confirm the recovery]
+  H -->|"poll the link's<br/>paid status"| C
+  C --> B[Bandit learns:<br/>this action worked ✓]
 ```
+
+**In plain terms:** the agent creates an actual Razorpay test-mode payment link; the customer pays it; we find out either from a **webhook** (Razorpay pushes us the event) or by **polling** the link's status (we ask Razorpay "was it paid?"). Either way, the case closes with a real captured payment ID, and the agent learns. *The batch of 9,000 charges is synthetic by design (Track 3 asks for exactly that) — but the loop that works it is real.*
+
+---
+
+## 🧠 The brain — how it decides (and learns)
+
+Three parts, each carrying real weight (this is **not** an LLM wrapper):
+
+- **ML models** (gradient-boosted trees) estimate `P(recover)` and the optimal retry slot from features of the failure and customer.
+- **A contextual bandit** (Thompson sampling + a LinUCB variant) is the actual **decision-maker**. It maintains a belief about how well each *action* works for each *failure type*, and it improves that belief from **every confirmed outcome**. This learning is **saved to disk**, so it compounds across restarts instead of resetting.
+- **An LLM** (`anthropic` / `groq` / `openai`, with a deterministic template fallback) does two things: it writes the **personalised, multilingual reminder** copy, and it **explains the decision** in plain language — grounded in the real numbers, never inventing them.
+
+> 🎓 **What's a "contextual bandit"?** Imagine a row of slot machines where each lever pays out differently *depending on the situation* (the "context" = the failure type). The bandit's job is to learn, from experience, which lever to pull in each situation to make the most money — balancing "exploit what's worked" against "explore to keep learning." It learns from **rewards** (did the recovery succeed?), which is exactly what we observe. That's why the agent gets smarter with use.
+
+Critically, the **ML + bandit make the decision** (the part that's measured and defensible); the **LLM only explains and phrases it.** So turning the LLM on or off never changes the measured results — a key honesty property.
+
+---
+
+## ⚖️ India-native compliance — enforced, not claimed
+
+A system that auto-retries mandates and messages customers in India **must** respect real regulation. This is enforced in code (not a badge on a slide):
+
+- **RBI / UPI-Autopay 24h pre-debit notice** — an auto-retry on a mandate can't fire sooner than *now + 24 hours*.
+- **₹15,000 AFA cap** — a silent auto-debit above ₹15,000 isn't permitted; the agent routes it to an **authenticated** payment link instead of retrying.
+- **TRAI / DLT messaging** — quiet hours (no 21:00–08:00 sends), a frequency cap, and a consent/DND check.
+
+In the **Agent** tab you can watch this live: set a charge to ₹18,000 on a UPI-autopay mandate and the agent **blocks** the silent retry on the AFA cap, in front of you.
+
+---
+
+## 🔬 How we know it actually works
+
+Claims are cheap. Here's the measurement pipeline that backs every number:
+
+```mermaid
+---
+config:
+  look: handDrawn
+  theme: neutral
+---
+flowchart TB
+  S[🧪 Synthetic population<br/>calibrated to real<br/>decline benchmarks] --> H[❄️ Frozen hold-out<br/>9,000 charges the<br/>models never saw]
+  H --> E{Run every policy on<br/><b>identical</b> hidden truth}
+  E --> B1[No recovery<br/>floor]
+  E --> B2[Razorpay<br/>next-day retry]
+  E --> B3[Aggressive<br/>14-day retry]
+  E --> B4[Retry +<br/>dunning]
+  E --> B5[🏆 AI Revenue<br/>Recovery]
+  B5 --> V[Off-policy check<br/>IPS · SNIPS · DR<br/>≈ ground truth]
+  B5 --> W[Robustness<br/>wins 5 / 5<br/>random worlds]
+```
+
+**Three layers of proof, in plain terms:**
+
+1. **Fair head-to-head.** Every policy faces the *same* 9,000 hidden failures. The engine isn't compared to a strawman — it's compared to Razorpay's real default *and* to an aggressive retrier that gets 5× more attempts.
+2. **Off-policy evaluation.** This is how Stripe/Adyen validate a policy *before* risking a live A/B test: estimate the engine's value purely from a *random* policy's logged data. Our estimators (Doubly-Robust, SNIPS) land within **~1 point** of the true value — proof the method is sound, not hand-waved.
+3. **Robustness across worlds.** The strongest answer to *"you rigged the simulator."* We re-run the whole evaluation across **5 randomised failure worlds** (payday crunch, fraud spike, mandate lapses, …) we didn't hand-pick. The engine **wins all 5**, uplift **+23.8 ± 6.5 points** (worst world still +17.5). We tried to break our own result and couldn't.
+
+### 📊 The results
+
+On **9,000 unseen failed charges**, every policy facing identical hidden ground truth:
+
+| Policy | Recovery rate | Revenue recovered | Bank retries | **Net value** |
+|---|---|---|---|---|
+| No recovery *(floor)* | 0.0% | ₹0 | 0 | ₹0 |
+| Razorpay next-day retry *(default)* | 47.1% | ₹63.50L | 26,361 | ₹62.45L |
+| Aggressive 14-day retry *(fair control)* | 58.4% | ₹78.10L | 67,499 | ₹75.40L |
+| Retry + language-matched dunning | 56.8% | ₹75.89L | 24,385 | ₹74.90L |
+| **🏆 AI Revenue Recovery** | **67.8%** | **₹91.05L** | **12,906** | **₹90.51L** |
+
+**+20.7 points and +₹27.55L over Razorpay's default — with roughly half the bank retries.** It even beats the *aggressive* 14-day retrier (58.4%) while using **5× fewer retries**. On **net value** — money recovered *minus* the ~₹4/retry + messaging cost to get it — the gap is even wider: **₹90.51L vs ₹75.40L.** *Value, not volume.*
+
+It wins biggest exactly where blind retry is useless:
+
+| Failure class | Razorpay retry | **Engine** |
+|---|---|---|
+| Expired card *(needs update)* | 9% | **66%** |
+| Paused mandate *(needs re-auth)* | 13% | **64%** |
+| Insufficient funds | 58% | **74%** |
+
+> Reproduce every number with `make eval` (seed `9999`). Full methodology in [`docs/RESULTS.md`](docs/RESULTS.md).
+
+---
+
+## 🏗️ System architecture
+
+How the pieces fit together — inputs on the left, the decision brain in the middle, acting on the right, with learning that persists:
+
+```mermaid
+---
+config:
+  look: handDrawn
+  theme: neutral
+---
+flowchart LR
+  subgraph IN[" Inputs "]
+    WH[Razorpay<br/>webhooks]
+    UI[Agent<br/>console]
+  end
+  subgraph BRAIN[" The engine "]
+    direction TB
+    DG[Diagnose<br/>taxonomy] --> ML[ML: recover-prob<br/>+ timing]
+    ML --> BD[Contextual<br/>bandit]
+    BD --> CO[Compliance<br/>guardrails]
+  end
+  subgraph ACT[" Acting "]
+    direction TB
+    LLM[LLM dunning<br/>writer]
+    GW[Razorpay<br/>gateway]
+    SCH[Durable<br/>scheduler]
+  end
+  ST[("SQLite store<br/>cases · learning · jobs")]
+  WH --> DG
+  UI --> DG
+  CO --> LLM
+  CO --> GW
+  CO --> SCH
+  LLM --> ST
+  GW --> ST
+  SCH --> ST
+  ST -. "learning persists ↺" .-> BD
+```
+
+```text
 src/recovery/
-├── domain/        Pydantic models + Razorpay-grounded failure taxonomy
+├── domain/        Data models + Razorpay-grounded failure taxonomy
 ├── simulation/    Synthetic subscription population + recovery environment (ground truth)
 ├── ml/            Feature engineering, P(recover) + optimal-timing models, training
-├── policy/        EV orchestrator + Thompson bandit + LinUCB contextual bandit
-├── llm/           Claude dunning-message generator (+ deterministic fallback)
-├── razorpay/      Test-mode gateway + webhook verify (payments & subscriptions)
-├── eval/          Baselines + held-out harness + off-policy (IPS/DR) evaluation
+├── policy/        Expected-value orchestrator + Thompson bandit + LinUCB contextual bandit
+├── llm/           Dunning-message writer + decision-reasoning writer (+ deterministic fallback)
+├── razorpay/      Test-mode gateway, executor + signed webhook verification
+├── eval/          Baselines + held-out harness + off-policy (IPS/SNIPS/DR) evaluation
 ├── compliance.py  RBI e-mandate / UPI-Autopay / TRAI DLT guardrails
 ├── store.py       SQLite: durable cases + persisted bandit + scheduled jobs
-├── scheduler.py   Executes retry/nudge jobs at the compliant time (closed loop)
+├── scheduler.py   Executes retry/nudge jobs at the compliant time (closes the loop)
 ├── live.py        Streaming live-campaign engine (SSE): engine vs baseline race
 └── api/           FastAPI backend (webhooks, cases, metrics, live plan, SSE stream)
+
 frontend/          React/Vite operating console (dark, CRED-inspired)
 scripts/           generate_data · train_models · run_eval · robustness · demo_live
+docs/              ARCHITECTURE · RESULTS · PITCH · REAL_RECOVERY
 ```
 
-## Quickstart (development)
+---
+
+## 🖥️ The console — a tour of the six screens
+
+The product ships as a cinematic **story page** (`/`) that explains the problem, and a calm **operating console** (`/dashboard`) where you actually run recoveries:
+
+| Screen | What it's for |
+|---|---|
+| **Console** | The scoreboard. Money recovered vs Razorpay, with *half the retries* — plus three proof badges: a real recovery, survives outages, wins every world. |
+| **Live** | Watch it *run*. It auto-plays across every failure world; a flow graph draws each payment `failure → move → outcome` in real time as the engine races Razorpay's retry. |
+| **Recoveries** | The audit trail — every decision the engine made on the batch, click a row for the full reasoning trace. |
+| **Exceptions** | The honest half — exactly what it **couldn't** recover, grouped by reason, with the stopping rule it applied. |
+| **Agent** | Hand it one live failed charge → watch it diagnose, decide on expected value, **explain itself**, call its tools, get compliance-checked, and author a real payment link. |
+| **Experiments** | The rigour — every policy on a frozen hold-out, **net value** as the scoreboard, off-policy validation, and the 5/5 robustness proof. |
+
+---
+
+## 🚀 Run it
+
+**No credentials are required** to run the full pipeline — the engine falls back to a faithful mock gateway and deterministic multilingual templates. Add keys in `.env` (copy from [`.env.example`](.env.example)) to enable the **live** test-mode recovery and LLM-authored messages.
+
+### Development
 
 ```bash
-make install     # Python deps
+make install     # Python dependencies
 make all         # simulate → train → eval  (runs with ZERO credentials)
-make api         # API in dev on :8000 (reload)
+make api         # API in dev on :8000 (auto-reload)
 make frontend    # Vite dev server on :5173 (proxies to the API)
 ```
 
-No keys are required to run the full pipeline — the engine falls back to a faithful
-mock gateway and a deterministic multilingual dunning writer. Add keys in `.env`
-(see `.env.example`) to enable the **live** test-mode recovery demo and LLM-authored
-messages. The LLM is used **only** for message copy (`LLM_PROVIDER` = `anthropic` /
-`groq` / `openai`); evaluation always uses templates, so a key never changes the
-measured results.
+Then open **http://localhost:5173**.
 
-## Run it on a server (production)
+### Production — one process serves everything
 
-One process serves the built React app **and** the API on a single port — no CORS, no
-proxy, no separate frontend host.
+One process serves the built React app **and** the API on a single port — no CORS, no proxy, no separate frontend host.
 
 ```bash
 # Option A — native
-make install
-make serve                      # builds frontend/dist, serves everything on :8000
-#   → open http://<server>:8000  (HOST=0.0.0.0 by default; override PORT=... if needed)
+make serve                    # builds frontend/dist, serves app + API on :8000
 
 # Option B — Docker (nothing to install but Docker)
-docker compose up --build       # → http://localhost:8000
-#   or: docker build -t revenue-recovery . && docker run -p 8000:8000 revenue-recovery
+docker compose up --build     # → http://localhost:8000
 ```
 
-The trained models and held-out results are committed, so the container runs out of the
-box; the population self-seeds on first start. Enable live features by passing env vars
-(e.g. `docker run -p 8000:8000 -e LLM_PROVIDER=groq -e GROQ_API_KEY=... revenue-recovery`).
-Behind a reverse proxy (nginx/Caddy), just forward to port 8000.
+The trained models and held-out results are committed, so the container runs out of the box; the synthetic population self-seeds on first start.
 
-## Results
+### Enable the live features (optional)
 
-On **9,000 unseen failed recurring charges** (a held-out population the models never
-trained on), every policy facing the *identical* hidden ground truth:
+Add to `.env`:
 
-| Policy | Recovery rate | Revenue recovered | Retries used |
-|---|---|---|---|
-| No recovery (floor) | 0.0% | ₹0 | 0 |
-| Fixed next-day retry *(Razorpay default)* | 47.1% | ₹63.5L | 26,361 |
-| Fixed daily retry · 14-day window *(fair control)* | 58.4% | ₹78.1L | 67,499 |
-| Fixed retry + channel/language-matched dunning | 56.8% | ₹75.9L | 24,385 |
-| **AI Revenue Recovery engine** | **67.8%** | **₹91.1L** | **12,906** |
+```ini
+RAZORPAY_KEY_ID=rzp_test_xxx
+RAZORPAY_KEY_SECRET=xxx
+LLM_PROVIDER=groq          # or anthropic / openai
+GROQ_API_KEY=xxx
+```
 
-**+20.7 points (+44% relative) over the fixed-retry default, +₹27.5L recovered — with
-roughly half the bank retries.** Crucially, it also beats a *window-matched* 14-day
-retrier (58.4%) while using **5× fewer retries** (12.9k vs 67.5k), and beats a
-*channel/language-matched* dunning baseline by +11.0 points — so the lift is genuine
-timing + action skill, not a longer window or a rigged baseline. It wins biggest
-exactly where a blind retry is useless:
+The LLM is used **only** for message copy and decision explanations — evaluation always uses templates, so a key never changes the measured results. To recover one **real** test-mode payment end-to-end, see [`docs/REAL_RECOVERY.md`](docs/REAL_RECOVERY.md).
 
-| Failure class | Fixed retry | Engine |
-|---|---|---|
-| Expired card (needs update) | 8.6% | **65.6%** |
-| Paused/revoked mandate (needs re-auth) | 12.6% | **64.4%** |
-| Insufficient funds | 58.5% | **74.0%** |
+> ⚠️ **Razorpay test-mode gotcha:** this test account has *international cards disabled*. To pay a generated test link, use **UPI `success@razorpay`** or **Netbanking → Success**, not the `4111…` card.
 
-**Proven counterfactually.** The lift isn't just an in-sim A/B — an off-policy
-evaluation estimates the engine's value from a *random logging policy's* logged data
-(the way Adyen/Stripe validate before deploying): Doubly-Robust **34.3%** and SNIPS
-**34.2%** track the true on-policy value **33.6%**, all far above the random baseline
-**18.1%**. See [`docs/RESULTS.md`](docs/RESULTS.md).
+---
 
-![Dashboard](docs/dashboard.png)
+## 🧰 Tech stack
 
-Numbers are reproduced by `make eval` on seed `9999`; full methodology and the
-bandit's learned policy are in [`docs/RESULTS.md`](docs/RESULTS.md).
+**Backend** — Python · FastAPI · scikit-learn (gradient-boosted models) · SQLite · Server-Sent Events · Razorpay SDK (test mode) · Ruff · pytest
+**Frontend** — React · Vite · Framer Motion · a dark, CRED-inspired design system (Clash Display · Satoshi · JetBrains Mono)
+**Intelligence** — Thompson-sampling + LinUCB contextual bandit · off-policy evaluation (IPS / SNIPS / Doubly-Robust) · pluggable LLM (Anthropic / Groq / OpenAI)
 
-## Documentation
+---
+
+## 📚 More documentation
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — how each stage works and why.
 - [`docs/RESULTS.md`](docs/RESULTS.md) — evaluation methodology + measured uplift.
 - [`docs/PITCH.md`](docs/PITCH.md) — the 5-minute pitch + demo runbook.
+- [`docs/REAL_RECOVERY.md`](docs/REAL_RECOVERY.md) — recover a real Razorpay test payment, step by step.
 
 ---
 
 <div align="center">
-<sub>Built for the Razorpay AI Buildathon 2026 · Track 3 · Simulation-first, credential-optional.</sub>
+<sub>Built for the Razorpay AI Buildathon 2026 · Track 3 · Simulation-first, credential-optional · <b>Value, not volume.</b></sub>
 </div>
