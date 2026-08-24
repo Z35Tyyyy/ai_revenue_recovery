@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useMetrics, useCases } from "../lib/useData.js";
 import { formatINR } from "../api.js";
 import { actionLabel, classLabel } from "../lib/labels.js";
+import { FunnelOverview } from "./FunnelOverview.jsx";
 
 const CLASS_ORDER = [
   "needs_card_update", "needs_reauth", "insufficient_funds",
@@ -68,9 +69,11 @@ export function Overview() {
         keeps, not gross volume.
       </p>
       <p className="batch-sub mono">
-        Razorpay test mode · a {total.toLocaleString("en-IN")}-charge synthetic failure batch (the
-        scale Track 3 asks for) · {formatINR(atRisk)} at risk.
+        Razorpay test mode · a {total.toLocaleString("en-IN")}-charge synthetic payment-failure batch
+        (the scale Track 3 asks for) · {formatINR(atRisk)} at risk.
       </p>
+
+      <FunnelOverview />
 
       {/* hero odometer */}
       <Reveal className="hero-recovered card card--glow" variants={fadeUp}>

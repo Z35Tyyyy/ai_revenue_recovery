@@ -4,6 +4,13 @@ import { Button, Pill, Meter, Icon, Card, CLASS_TONE, ACTION_TONE } from "../com
 import { useReasons, useHealth } from "../lib/useData.js";
 import { api, formatINR } from "../api.js";
 import { classLabel, actionLabel } from "../lib/labels.js";
+import { RiskAgent } from "./RiskAgent.jsx";
+
+const RISK_TABS = [
+  { key: "payment_failure", label: "Payment failure" },
+  { key: "checkout_abandonment", label: "Checkout abandonment" },
+  { key: "overdue_receivable", label: "Overdue receivable" },
+];
 
 const LANGS = [
   ["hinglish", "Hinglish"], ["hi", "हिन्दी"], ["en", "English"],
@@ -40,6 +47,10 @@ function Field({ label, children, hint }) {
 export function AgentConsole() {
   const reasons = useReasons();
   const { health } = useHealth();
+  const [source, setSource] = useState(() => {
+    const s = new URLSearchParams(window.location.search).get("src");
+    return RISK_TABS.some((t) => t.key === s) ? s : "payment_failure";
+  });
   const [form, setForm] = useState(DEFAULTS);
   const [result, setResult] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -140,9 +151,27 @@ export function AgentConsole() {
   return (
     <div className="page agent">
       <p className="page__lead">
-        Hand the engine a live failed charge. It diagnoses, predicts, decides, and — with keys —
-        authors a real recovery.
+        Hand the agent a live case from anywhere in the funnel — a failed charge, an abandoned
+        checkout, or an overdue invoice. It diagnoses the root cause, decides the intervention, and
+        runs a bounded recovery workflow.
       </p>
+      <div className="risksrc">
+        {RISK_TABS.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            className={`risksrc__tab ${source === t.key ? "is-on" : ""}`}
+            onClick={() => setSource(t.key)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {source !== "payment_failure" ? (
+        <RiskAgent source={source} />
+      ) : (
+        <>
       <p className="agent__coverage mono">
         Coverage · <strong>6</strong> failure classes · <strong>5</strong> payment methods ·{" "}
         <strong>8</strong> Indian languages · <strong>3</strong> channels — every action
@@ -482,6 +511,8 @@ export function AgentConsole() {
           </AnimatePresence>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }

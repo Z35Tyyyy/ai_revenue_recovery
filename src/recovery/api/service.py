@@ -165,6 +165,7 @@ class RecoveryService:
         self.store.save_bandit(self.bandit.export_ab())  # persist what warm-up learned
         self._holdout = self._load_holdout()
         self._robustness = self._load_report("robustness.json")
+        self._risk_overview_cache: dict | None = None
 
     # -- startup ------------------------------------------------------------- #
     def _load_population(self) -> Population:
@@ -681,6 +682,35 @@ class RecoveryService:
                 }
             )
         return {"count": len(items), "total_paise": total, "items": items[:5]}
+
+    # -- revenue-at-risk across all three sources (one agent, many sources) ---- #
+    def risk_overview(self) -> dict:
+        """Combined revenue at risk + recovered across payment failures, checkout
+        abandonment and overdue receivables — payment failures from the trained
+        holdout, the other two from measured batches. Cached (deterministic)."""
+        if self._risk_overview_cache is None:
+            from recovery.risksources import overview  # noqa: PLC0415
+
+            eng = ((self._holdout or {}).get("policies") or {}).get("engine") or {}
+            at_risk = int(eng.get("revenue_total_paise") or 1328480000)
+            recovered = int(eng.get("revenue_recovered_paise") or 910519800)
+            self._risk_overview_cache = overview(at_risk, recovered)
+        return self._risk_overview_cache
+
+    def risk_plan(self, source: str, class_key: str | None) -> dict:
+        """Interactive per-case decision for a non-payment source: diagnose the root
+        cause, pick the intervention, and describe the bounded workflow."""
+        from recovery.risksources import SPECS, RiskSource, diagnose  # noqa: PLC0415
+
+        try:
+            src = RiskSource(source)
+        except ValueError:
+            return {"error": f"unknown source '{source}'"}
+        spec = SPECS.get(src)
+        if spec is None:
+            return {"error": "source has no interactive plan"}
+        cls = class_key or self._rng.choice([c.key for c in spec.classes])
+        return diagnose(src, cls) or {"error": "diagnose failed"}
 
     def set_chaos(self, llm: bool | None = None, gateway: bool | None = None) -> dict:
         """Deliberately force a dependency 'down' to demo graceful fallbacks."""

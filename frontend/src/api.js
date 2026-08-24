@@ -25,6 +25,9 @@ export const api = {
     return j(`/api/cases?${q}`);
   },
   reasons: () => j("/api/reasons"),
+  riskOverview: () => j("/api/risk/overview"),
+  riskPlan: (source, klass) =>
+    j(`/api/risk/plan?source=${encodeURIComponent(source)}${klass ? `&klass=${encodeURIComponent(klass)}` : ""}`),
   plan: (body, signal) =>
     j("/api/plan", {
       method: "POST",

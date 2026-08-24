@@ -121,3 +121,15 @@ export function useReasons() {
   }, []);
   return reasons;
 }
+
+export function useRiskOverview() {
+  const [data, setData] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    api.riskOverview()
+      .then((d) => alive && setData(d))
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+  return data;
+}

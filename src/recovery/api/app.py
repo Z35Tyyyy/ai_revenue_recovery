@@ -121,6 +121,19 @@ def scenarios() -> dict:
     return {"scenarios": list(SCENARIOS)}
 
 
+@app.get("/api/risk/overview")
+def risk_overview() -> dict:
+    """Revenue at risk + recovered across all three sources (payment failures,
+    checkout abandonment, overdue receivables) — one agent, many sources."""
+    return get_service().risk_overview()
+
+
+@app.get("/api/risk/plan")
+def risk_plan(source: str, klass: str | None = None) -> dict:
+    """Diagnose + intervention + bounded workflow for one non-payment case."""
+    return get_service().risk_plan(source, klass)
+
+
 @app.post("/api/scheduler/advance", dependencies=[Depends(require_api_key)])
 def scheduler_advance() -> dict:
     """Demo fast-forward: fire ALL pending scheduled jobs now and confirm outcomes."""
