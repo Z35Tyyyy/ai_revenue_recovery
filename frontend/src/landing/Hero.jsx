@@ -80,7 +80,6 @@ function RecoveryTicker() {
 export function Hero({ metrics }) {
   const eng = metrics?.holdout?.policies?.engine;
   const up = metrics?.holdout?.uplift?.vs_fixed_retry;
-  const rate = eng ? eng.recovery_rate * 100 : 67.8;
   const absPts = up ? up.recovery_rate_abs * 100 : 20.7;
   const revenue = eng ? eng.revenue_recovered_paise : 910519800;
 
@@ -99,8 +98,9 @@ export function Hero({ metrics }) {
           <p className="hero__lede">
             20–40% of recurring revenue is lost to <em>involuntary</em> churn — cards
             that expired, funds that weren&rsquo;t there on debit day, mandates that
-            lapsed. An agentic engine that diagnoses every failure, predicts the right
-            moment, and wins the money back.
+            lapsed. An agent that wins it back by optimising what you <strong>keep</strong>{" "}
+            — more money, with <strong>half the bank retries</strong> — not by blindly
+            retrying more.
           </p>
 
           <div className="hero__cta">
@@ -114,20 +114,18 @@ export function Hero({ metrics }) {
 
           <div className="hero__stats">
             <div className="hero__stat">
-              <div className="hero__stat-val tnum">
-                <Counter to={rate} format={(v) => v.toFixed(1)} />%
-              </div>
-              <div className="hero__stat-lab">recovery rate</div>
+              <div className="hero__stat-val tnum hero__stat-val--pos">{formatINR(revenue)}</div>
+              <div className="hero__stat-lab">recovered on the holdout</div>
             </div>
             <div className="hero__stat">
-              <div className="hero__stat-val tnum hero__stat-val--pos">
+              <div className="hero__stat-val tnum">½</div>
+              <div className="hero__stat-lab">the bank retries</div>
+            </div>
+            <div className="hero__stat">
+              <div className="hero__stat-val tnum">
                 +<Counter to={absPts} format={(v) => v.toFixed(1)} /> pts
               </div>
               <div className="hero__stat-lab">vs the default retry</div>
-            </div>
-            <div className="hero__stat">
-              <div className="hero__stat-val tnum">{formatINR(revenue)}</div>
-              <div className="hero__stat-lab">won back on holdout</div>
             </div>
           </div>
         </div>

@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Reveal, Counter, Button, Pill, Meter, Icon, fadeUp, stagger } from "../components/ui.jsx";
+import { Reveal, Button, Pill, Meter, Icon, fadeUp, stagger } from "../components/ui.jsx";
 import { formatINR } from "../api.js";
 import { POLICY_ORDER, POLICY_LABEL, classLabel } from "../lib/labels.js";
 
@@ -20,6 +20,11 @@ export function Impact({ metrics }) {
   const fixed = policies.fixed_retry;
   const up = metrics?.holdout?.uplift?.vs_fixed_retry;
   const maxRate = Math.max(...POLICY_ORDER.map((p) => policies[p]?.recovery_rate || 0), 0.01);
+  // Net value = revenue recovered − ₹4/retry − ₹0.30/nudge (the Console's scoreboard).
+  const netValue =
+    (engine?.revenue_recovered_paise ?? 910519800) -
+    (engine?.retries ?? 12906) * 400 -
+    (engine?.nudges ?? 8467) * 30;
 
   return (
     <section className="section impact" id="impact">
@@ -38,25 +43,21 @@ export function Impact({ metrics }) {
           </p>
         </Reveal>
 
-        {/* headline deltas */}
+        {/* headline deltas — money & efficiency first; recovery rate is the wrong scoreboard */}
         <div className="impact__headline">
           <Reveal className="impact__hcard card card--glow" variants={fadeUp}>
-            <div className="stat__label">Recovery rate</div>
-            <div className="impact__hval tnum">
-              <Counter to={(engine?.recovery_rate ?? 0.677) * 100} format={(v) => v.toFixed(1)} />%
-            </div>
-            <Pill tone="pos">
-              +{((up?.recovery_rate_abs ?? 0.206) * 100).toFixed(1)} pts vs default
-            </Pill>
+            <div className="stat__label">Revenue recovered</div>
+            <div className="impact__hval tnum">{formatINR(engine?.revenue_recovered_paise ?? 910519800)}</div>
+            <Pill tone="pos">+{formatINR(up?.revenue_recovered_delta_paise ?? 275498300)} vs default</Pill>
           </Reveal>
           <Reveal className="impact__hcard card" variants={fadeUp}>
-            <div className="stat__label">Revenue won back</div>
-            <div className="impact__hval tnum">{formatINR(engine?.revenue_recovered_paise ?? 89944110000)}</div>
-            <Pill tone="pos">+{formatINR(up?.revenue_recovered_delta_paise ?? 264419600)} recovered</Pill>
+            <div className="stat__label">Net value kept</div>
+            <div className="impact__hval tnum">{formatINR(netValue)}</div>
+            <Pill tone="pos">recovered − retry &amp; msg cost</Pill>
           </Reveal>
           <Reveal className="impact__hcard card" variants={fadeUp}>
-            <div className="stat__label">Bank retries used</div>
-            <div className="impact__hval tnum">{(engine?.retries ?? 13012).toLocaleString("en-IN")}</div>
+            <div className="stat__label">Bank retries</div>
+            <div className="impact__hval tnum">{(engine?.retries ?? 12906).toLocaleString("en-IN")}</div>
             <Pill tone="cool">≈half of the {(fixed?.retries ?? 26361).toLocaleString("en-IN")} default</Pill>
           </Reveal>
         </div>
