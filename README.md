@@ -2,7 +2,9 @@
 
 # ♻️ AI Revenue Recovery
 
-### An agent that wins back failed recurring payments on Razorpay
+### An agent that wins back revenue at risk across the funnel — on Razorpay
+
+*Failed payments · abandoned checkouts · overdue invoices — one agent, measured on each.*
 
 **Razorpay AI Buildathon 2026 — Track 3**
 
@@ -39,6 +41,41 @@ A recurring payment can fail for many reasons, and they are **not** the same pro
 | Card reported stolen | …useless & annoying | **Stop.** Don't waste retries |
 
 The market leaders (Stripe Smart Retries, Butter, FlyCode) use machine learning to pick a better retry moment and recover meaningfully more. **But there is no open, transparent, India-native version of this** — one that understands salary cycles, UPI-autopay mandates, regional-language reminders, and India's payment regulations. That gap is what this project fills.
+
+---
+
+## 🕸️ One agent, the whole funnel
+
+Revenue doesn't leak in one clean step — a payment degrades, a checkout is abandoned, an invoice goes overdue. The **same** agent handles all three. Only the *trigger* and the *intervention menu* change; the loop — **detect the risk → determine the right intervention → run a bounded recovery workflow → learn** — is identical.
+
+```mermaid
+---
+config:
+  look: handDrawn
+  theme: neutral
+---
+flowchart LR
+  S1[💳 Payment /<br/>subscription fails] --> AG{{"THE AGENT<br/>detect · decide ·<br/>bounded-execute · learn"}}
+  S2[🛒 Checkout<br/>abandoned] --> AG
+  S3[🧾 Invoice<br/>overdue] --> AG
+  AG --> O1[retry · re-auth ·<br/>card update]
+  AG --> O2[one-tap complete ·<br/>reminder · incentive]
+  AG --> O3[reminder · plan ·<br/>promise-to-pay · escalate]
+  O1 --> R((✅ recovered —<br/>or honestly<br/>stopped))
+  O2 --> R
+  O3 --> R
+```
+
+Each source clears the **same Track-3 bar** — measured money recovered across a batch, compliant escalation, a stopping rule, and an audit trail:
+
+| Revenue-at-risk source | At risk | Recovered | Measured by |
+|---|---|---|---|
+| **Payment & subscription failures** | ₹1.33Cr | **₹91.05L** | trained ML + held-out eval (9,000 charges) |
+| **Checkout abandonment** | ₹38.29L | **₹18.40L**  ·  +13 pts | batch of 800 vs one-size-fits-all |
+| **Overdue receivables** | ₹3.79Cr | **₹2.89Cr**  ·  +13 pts | batch of 800 vs one-size-fits-all |
+| **Combined** | **₹5.51Cr** | **₹3.98Cr** | one agent, three sources |
+
+Payment failures carry the deepest rigor (trained models, off-policy evaluation, 5/5-worlds robustness); checkout & receivables run the *same* detect→decide→bounded-execute loop on their own measured batches, calibrated to public benchmarks (cart-abandonment ~70%, AR aging-bucket recovery). **The rest of this README drills into the deepest domain — payment failures.**
 
 ---
 
@@ -269,11 +306,11 @@ The product ships as a cinematic **story page** (`/`) that explains the problem,
 
 | Screen | What it's for |
 |---|---|
-| **Console** | The scoreboard. Money recovered vs Razorpay, with *half the retries* — plus three proof badges: a real recovery, survives outages, wins every world. |
+| **Console** | The scoreboard. Leads with **revenue at risk across the funnel** (all three sources, ₹3.98Cr of ₹5.51Cr), then the payment money-shot: money recovered vs Razorpay with *half the retries*, plus three proof badges — a real recovery, survives outages, wins every world. |
 | **Live** | Watch it *run*. It auto-plays across every failure world; a flow graph draws each payment `failure → move → outcome` in real time as the engine races Razorpay's retry. |
 | **Recoveries** | The audit trail — every decision the engine made on the batch, click a row for the full reasoning trace. |
 | **Exceptions** | The honest half — exactly what it **couldn't** recover, grouped by reason, with the stopping rule it applied. |
-| **Agent** | Hand it one live failed charge → watch it diagnose, decide on expected value, **explain itself**, call its tools, get compliance-checked, and author a real payment link. |
+| **Agent** | Pick a **source** — a failed charge, an abandoned checkout, or an overdue invoice — and watch the same agent diagnose the root cause, decide the intervention, **explain itself**, get compliance-checked, and lay out the bounded workflow (a real Razorpay pay-link for failed charges). |
 | **Experiments** | The rigour — every policy on a frozen hold-out, **net value** as the scoreboard, off-policy validation, and the 5/5 robustness proof. |
 
 ---
