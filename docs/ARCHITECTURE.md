@@ -7,9 +7,20 @@ thing a Razorpay panel will probe hardest.
 
 Every failed recurring charge flows through five stages:
 
-<p align="center"><img src="diagrams/loop.svg" alt="The closed recovery loop — detect, predict, decide, act, measure, learn" width="860"></p>
-
-<sub>*<a href="diagrams/loop.excalidraw">edit this diagram in Excalidraw</a>*</sub>
+```mermaid
+---
+config:
+  look: handDrawn
+  theme: neutral
+---
+flowchart LR
+  W([payment.failed<br/>webhook]) --> D["DIAGNOSE<br/>taxonomy class"]
+  D --> P["PREDICT<br/>P(recover) +<br/>best retry slot · ML"]
+  P --> C["DECIDE<br/>bandit-adjusted<br/>EV argmax"]
+  C --> A["ACT<br/>retry / dunning<br/>+ pay-link"]
+  A --> M["MEASURE<br/>outcome"]
+  M -. "feeds back ↺" .-> C
+```
 
 ### 1 · Diagnose — `domain/taxonomy.py`
 Raw Razorpay error `reason` codes are mapped to a **recoverability class**
