@@ -48,23 +48,9 @@ The market leaders (Stripe Smart Retries, Butter, FlyCode) use machine learning 
 
 Revenue doesn't leak in one clean step — a payment degrades, a checkout is abandoned, an invoice goes overdue. The **same** agent handles all three. Only the *trigger* and the *intervention menu* change; the loop — **detect the risk → determine the right intervention → run a bounded recovery workflow → learn** — is identical.
 
-```mermaid
----
-config:
-  look: handDrawn
-  theme: neutral
----
-flowchart LR
-  S1[💳 Payment /<br/>subscription fails] --> AG{{"THE AGENT<br/>detect · decide ·<br/>bounded-execute · learn"}}
-  S2[🛒 Checkout<br/>abandoned] --> AG
-  S3[🧾 Invoice<br/>overdue] --> AG
-  AG --> O1[retry · re-auth ·<br/>card update]
-  AG --> O2[one-tap complete ·<br/>reminder · incentive]
-  AG --> O3[reminder · plan ·<br/>promise-to-pay · escalate]
-  O1 --> R((✅ recovered —<br/>or honestly<br/>stopped))
-  O2 --> R
-  O3 --> R
-```
+<p align="center"><img src="docs/diagrams/funnel.svg" alt="One agent across the funnel — three sources, agent, interventions, outcome" width="860"></p>
+
+<sub>*<a href="docs/diagrams/funnel.excalidraw">edit this diagram in Excalidraw</a>*</sub>
 
 Each source clears the **same Track-3 bar** — measured money recovered across a batch, compliant escalation, a stopping rule, and an audit trail:
 
@@ -83,20 +69,9 @@ Payment failures carry the deepest rigor (trained models, off-policy evaluation,
 
 For **every** failed charge, the agent runs the same five-step loop. Think of it as a tiny, tireless recovery analyst working each case:
 
-```mermaid
----
-config:
-  look: handDrawn
-  theme: neutral
----
-flowchart LR
-  A([💳 Payment fails]) --> B["1 · DIAGNOSE<br/>what kind of<br/>failure is this?"]
-  B --> C["2 · PREDICT<br/>chance of recovery<br/>+ best moment"]
-  C --> D["3 · DECIDE<br/>the highest-<b>value</b><br/>action"]
-  D --> E["4 · ACT<br/>retry · re-auth ·<br/>remind · pay-link"]
-  E --> F["5 · MEASURE<br/>did it recover?"]
-  F -. "learns from the outcome ↺" .-> D
-```
+<p align="center"><img src="docs/diagrams/loop.svg" alt="The closed recovery loop — detect, predict, decide, act, measure, learn" width="860"></p>
+
+<sub>*<a href="docs/diagrams/loop.excalidraw">edit this diagram in Excalidraw</a>*</sub>
 
 **In plain terms:**
 
@@ -112,24 +87,9 @@ flowchart LR
 
 The magic isn't "retry harder" — it's routing each *kind* of failure to the *right* action, and **stopping** on the hopeless ones:
 
-```mermaid
----
-config:
-  look: handDrawn
-  theme: neutral
----
-flowchart LR
-  F1[💸 Insufficient funds] --> A1[Wait for payday,<br/>then retry]
-  F2[💳 Expired / dead card] --> A2[Ask customer to<br/>update card]
-  F3[🔗 Paused mandate] --> A3[Send re-auth<br/>reminder]
-  F4[⚡ Bank glitch] --> A4[Retry now]
-  F5[🚫 Hard decline] --> A5[STOP —<br/>don't waste retries]
-  A1 --> R1((✅ Recovered))
-  A2 --> R1
-  A3 --> R1
-  A4 --> R1
-  A5 --> R2((🕊️ Let go,<br/>honestly))
-```
+<p align="center"><img src="docs/diagrams/routing.svg" alt="Each failure class routed to the right action, or stopped" width="860"></p>
+
+<sub>*<a href="docs/diagrams/routing.excalidraw">edit this diagram in Excalidraw</a>*</sub>
 
 > 💡 Knowing **when to stop** is as valuable as knowing when to act. Every needless retry costs a bank fee, risks a penalty on your merchant account, and nudges a good customer toward cancelling for real. A system that only ever "tries harder" is optimising the wrong thing.
 
@@ -139,20 +99,9 @@ flowchart LR
 
 The agent doesn't just *simulate* recovery — it closes one **real** loop through Razorpay's live test API, with **no webhook tunnel required**:
 
-```mermaid
----
-config:
-  look: handDrawn
-  theme: neutral
----
-flowchart LR
-  D[Agent decides:<br/>send a pay-link] --> L[Create a <b>real</b><br/>Razorpay test link]
-  L --> P[Customer pays<br/>the link]
-  P --> H{How we hear<br/>it was paid}
-  H -->|"webhook<br/>(payment.captured)"| C[Confirm the recovery]
-  H -->|"poll the link's<br/>paid status"| C
-  C --> B[Bandit learns:<br/>this action worked ✓]
-```
+<p align="center"><img src="docs/diagrams/realloop.svg" alt="Closing the real Razorpay loop — create link, pay, confirm, learn" width="860"></p>
+
+<sub>*<a href="docs/diagrams/realloop.excalidraw">edit this diagram in Excalidraw</a>*</sub>
 
 **In plain terms:** the agent creates an actual Razorpay test-mode payment link; the customer pays it; we find out either from a **webhook** (Razorpay pushes us the event) or by **polling** the link's status (we ask Razorpay "was it paid?"). Either way, the case closes with a real captured payment ID, and the agent learns. *The batch of 9,000 charges is synthetic by design (Track 3 asks for exactly that) — but the loop that works it is real.*
 
@@ -188,23 +137,9 @@ In the **Agent** tab you can watch this live: set a charge to ₹18,000 on a UPI
 
 Claims are cheap. Here's the measurement pipeline that backs every number:
 
-```mermaid
----
-config:
-  look: handDrawn
-  theme: neutral
----
-flowchart TB
-  S[🧪 Synthetic population<br/>calibrated to real<br/>decline benchmarks] --> H[❄️ Frozen hold-out<br/>9,000 charges the<br/>models never saw]
-  H --> E{Run every policy on<br/><b>identical</b> hidden truth}
-  E --> B1[No recovery<br/>floor]
-  E --> B2[Razorpay<br/>next-day retry]
-  E --> B3[Aggressive<br/>14-day retry]
-  E --> B4[Retry +<br/>dunning]
-  E --> B5[🏆 AI Revenue<br/>Recovery]
-  B5 --> V[Off-policy check<br/>IPS · SNIPS · DR<br/>≈ ground truth]
-  B5 --> W[Robustness<br/>wins 5 / 5<br/>random worlds]
-```
+<p align="center"><img src="docs/diagrams/measurement.svg" alt="How we measure — synthetic, hold-out, policies, off-policy + robustness" width="860"></p>
+
+<sub>*<a href="docs/diagrams/measurement.excalidraw">edit this diagram in Excalidraw</a>*</sub>
 
 **Three layers of proof, in plain terms:**
 
@@ -242,40 +177,9 @@ It wins biggest exactly where blind retry is useless:
 
 How the pieces fit together — inputs on the left, the decision brain in the middle, acting on the right, with learning that persists:
 
-```mermaid
----
-config:
-  look: handDrawn
-  theme: neutral
----
-flowchart LR
-  subgraph IN[" Inputs "]
-    WH[Razorpay<br/>webhooks]
-    UI[Agent<br/>console]
-  end
-  subgraph BRAIN[" The engine "]
-    direction TB
-    DG[Diagnose<br/>taxonomy] --> ML[ML: recover-prob<br/>+ timing]
-    ML --> BD[Contextual<br/>bandit]
-    BD --> CO[Compliance<br/>guardrails]
-  end
-  subgraph ACT[" Acting "]
-    direction TB
-    LLM[LLM dunning<br/>writer]
-    GW[Razorpay<br/>gateway]
-    SCH[Durable<br/>scheduler]
-  end
-  ST[("SQLite store<br/>cases · learning · jobs")]
-  WH --> DG
-  UI --> DG
-  CO --> LLM
-  CO --> GW
-  CO --> SCH
-  LLM --> ST
-  GW --> ST
-  SCH --> ST
-  ST -. "learning persists ↺" .-> BD
-```
+<p align="center"><img src="docs/diagrams/architecture.svg" alt="System architecture — inputs, engine, acting, durable store" width="860"></p>
+
+<sub>*<a href="docs/diagrams/architecture.excalidraw">edit this diagram in Excalidraw</a>*</sub>
 
 ```text
 src/recovery/
@@ -376,7 +280,7 @@ The LLM is used **only** for message copy and decision explanations — evaluati
 - [`docs/PITCH.md`](docs/PITCH.md) — the 5-minute pitch + demo runbook.
 - [`docs/REAL_RECOVERY.md`](docs/REAL_RECOVERY.md) — recover a real Razorpay test payment, step by step.
 
-> 🖊️ **On the diagrams** — every flow diagram here (and in the docs) is [Mermaid](https://mermaid.js.org) with a hand-drawn, **Excalidraw-style** look (`look: handDrawn`). GitHub renders them natively — no image files, so they never go stale against the code. To preview them while editing **locally**, add a Mermaid extension to your editor — e.g. *Markdown Preview Mermaid Support* for **VS Code**, or the built-in Mermaid preview in JetBrains / Obsidian. (This is why there are no dashboard screenshots to rot — the pictures are generated from text.)
+> 🖊️ **On the diagrams** — every flow diagram here (and in the docs) is a genuine hand-drawn [Excalidraw](https://excalidraw.com) sketch, rendered to `.svg` (`docs/diagrams/*.svg`) so GitHub shows it inline with no build step. The **editable source** sits right beside each one as a `.excalidraw` file — click *“edit this diagram in Excalidraw”* under any picture, or open the `.excalidraw` at [excalidraw.com](https://excalidraw.com), tweak, and re-export. No dashboard screenshots to rot: these are diagrams of the *design*, not snapshots of the UI.
 
 ---
 
