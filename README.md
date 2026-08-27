@@ -253,7 +253,8 @@ src/recovery/
 ├── store.py       SQLite: durable cases + persisted bandit + scheduled jobs
 ├── scheduler.py   Executes retry/nudge jobs at the compliant time (closes the loop)
 ├── live.py        Streaming live-campaign engine (SSE): engine vs baseline race
-└── api/           FastAPI backend (webhooks, cases, metrics, live plan, SSE stream)
+├── risksources.py Checkout-abandonment + overdue-receivable agents (measured batches)
+└── api/           FastAPI backend (webhooks, cases, metrics, risk overview, SSE stream)
 
 frontend/          React/Vite operating console (dark, CRED-inspired)
 scripts/           generate_data · train_models · run_eval · robustness · demo_live
@@ -337,6 +338,8 @@ The LLM is used **only** for message copy and decision explanations — evaluati
 - [`docs/RESULTS.md`](docs/RESULTS.md) — evaluation methodology + measured uplift.
 - [`docs/PITCH.md`](docs/PITCH.md) — the 5-minute pitch + demo runbook.
 - [`docs/REAL_RECOVERY.md`](docs/REAL_RECOVERY.md) — recover a real Razorpay test payment, step by step.
+
+> 🖊️ **On the diagrams** — every flow diagram here (and in the docs) is [Mermaid](https://mermaid.js.org) with a hand-drawn, **Excalidraw-style** look (`look: handDrawn`). GitHub renders them natively — no image files, so they never go stale against the code. To preview them while editing **locally**, add a Mermaid extension to your editor — e.g. *Markdown Preview Mermaid Support* for **VS Code**, or the built-in Mermaid preview in JetBrains / Obsidian. (This is why there are no dashboard screenshots to rot — the pictures are generated from text.)
 
 ---
 

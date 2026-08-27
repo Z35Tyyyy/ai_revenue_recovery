@@ -7,13 +7,19 @@ thing a Razorpay panel will probe hardest.
 
 Every failed recurring charge flows through five stages:
 
-```
- payment.failed ─▶ DIAGNOSE ─▶ PREDICT ─▶ DECIDE ─▶ ACT ─▶ MEASURE ─┐
-   (webhook)         │           │          │        │        │      │
-                     ▼           ▼          ▼        ▼        ▼      │
-                 taxonomy   P(recover) +  bandit-  retry /  outcome │
-                 class      best retry    adjusted dunning   feeds  │
-                            slot (ML)     EV argmax +link    back ◀─┘
+```mermaid
+---
+config:
+  look: handDrawn
+  theme: neutral
+---
+flowchart LR
+  W([payment.failed<br/>webhook]) --> D["DIAGNOSE<br/>taxonomy class"]
+  D --> P["PREDICT<br/>P(recover) +<br/>best retry slot · ML"]
+  P --> C["DECIDE<br/>bandit-adjusted<br/>EV argmax"]
+  C --> A["ACT<br/>retry / dunning<br/>+ pay-link"]
+  A --> M["MEASURE<br/>outcome"]
+  M -. "feeds back ↺" .-> C
 ```
 
 ### 1 · Diagnose — `domain/taxonomy.py`
