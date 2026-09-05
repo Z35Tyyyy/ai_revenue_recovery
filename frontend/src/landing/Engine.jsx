@@ -97,7 +97,7 @@ export function Act() {
             <span className="msg__time mono">now · authored by Groq</span>
           </div>
           <div className="msg__langs">
-            {["हिन्दी", "English", "தமிழ்", "বাংলা", "मराठी"].map((l) => (
+            {["हिन्दी", "Hinglish", "English"].map((l) => (
               <span key={l} className="msg__lang">
                 {l}
               </span>

@@ -12,9 +12,11 @@ const RISK_TABS = [
   { key: "overdue_receivable", label: "Overdue receivable" },
 ];
 
+// Only languages with a deterministic in-language template are offered, so every
+// selection reliably generates a message in that language (the LLM alone is not
+// dependable at other Indic scripts and silently falls back to English).
 const LANGS = [
   ["hinglish", "Hinglish"], ["hi", "हिन्दी"], ["en", "English"],
-  ["ta", "தமிழ்"], ["te", "తెలుగు"], ["bn", "বাংলা"], ["mr", "मराठी"], ["kn", "ಕನ್ನಡ"],
 ];
 const CHANNELS = [["whatsapp", "WhatsApp"], ["sms", "SMS"], ["email", "Email"]];
 const METHODS = [
@@ -174,7 +176,7 @@ export function AgentConsole() {
         <>
       <p className="agent__coverage mono">
         Coverage · <strong>6</strong> failure classes · <strong>5</strong> payment methods ·{" "}
-        <strong>8</strong> Indian languages · <strong>3</strong> channels — every action
+        <strong>3</strong> languages · <strong>3</strong> channels — every action
         RBI / AFA / DLT-checked before it fires.
       </p>
 
