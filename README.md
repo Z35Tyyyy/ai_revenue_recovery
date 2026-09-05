@@ -8,6 +8,10 @@
 
 **Razorpay AI Buildathon 2026 — Track 3**
 
+### ▶ [Live demo — rebound-razorpay-buildathon.onrender.com](https://rebound-razorpay-buildathon.onrender.com)
+
+<sub>Live on Razorpay **test mode** · first load may take ~50s if the free instance is asleep</sub>
+
 *Everyone maximises recovery **rate** — the wrong number. Rebound recovers more money with **half the bank retries**, because it optimises what the merchant **keeps**, not gross volume. **Value, not volume.***
 
 </div>
