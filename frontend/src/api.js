@@ -1,5 +1,10 @@
+// Base URL for the API. Empty by default so local dev (Vite proxy) and the
+// single-origin Docker build "just work". For a split deploy (backend on its
+// own host, e.g. Render), set VITE_API_BASE to that origin at build time.
+export const API_BASE = import.meta.env.VITE_API_BASE ?? "";
+
 async function j(url, opts) {
-  const r = await fetch(url, opts);
+  const r = await fetch(API_BASE + url, opts);
   if (!r.ok) {
     let detail = "";
     try {

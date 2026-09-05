@@ -1,0 +1,33 @@
+# Render blueprint — the FastAPI backend (API only; the React dashboard ships
+# to Vercel separately). Deploy: Render dashboard → New + → Blueprint → pick
+# this repo. Secrets are marked sync:false, so Render prompts you to paste them
+# and they never live in git.
+services:
+  - type: web
+    name: ai-revenue-recovery-api
+    runtime: python
+    plan: free
+    region: singapore # closest Render region to India for the Razorpay demo
+    healthCheckPath: /health
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt && pip install -e .
+    startCommand: uvicorn recovery.api.app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      # Pinned to satisfy scikit-learn==1.9.0 (needs >=3.11); matches CI + Docker.
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: LLM_PROVIDER
+        value: groq
+      # Allow the Vercel frontend to call this API. "*" is fine for a test-mode
+      # demo; after the frontend is live you can tighten this to its exact
+      # origin, e.g. https://your-app.vercel.app
+      - key: RECOVERY_CORS_ORIGINS
+        value: "*"
+      # --- secrets: paste in the Render dashboard (sync:false keeps them out of git) ---
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Card, Pill, Meter, Icon, Button, CLASS_TONE } from "../components/ui.jsx";
-import { formatINR } from "../api.js";
+import { formatINR, API_BASE } from "../api.js";
 import { classLabel, actionLabel } from "../lib/labels.js";
 import { LiveFlow } from "./LiveFlow.jsx";
 
@@ -83,7 +83,7 @@ export function Live() {
     setBase(EMPTY);
     setFeed([]);
     setFlow(EMPTY_FLOW);
-    const es = new EventSource(`/api/campaign/stream?n=${count}&scenario=${sc}`);
+    const es = new EventSource(`${API_BASE}/api/campaign/stream?n=${count}&scenario=${sc}`);
     esRef.current = es;
     es.onmessage = (e) => {
       const ev = JSON.parse(e.data);
