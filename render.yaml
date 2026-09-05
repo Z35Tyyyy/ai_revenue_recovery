@@ -17,6 +17,9 @@ services:
         value: 3.12.7
       - key: LLM_PROVIDER
         value: groq
+      # This Groq key's default model isn't available; pin a valid one.
+      - key: RECOVERY_LLM_MODEL
+        value: openai/gpt-oss-120b
       # Allow the Vercel frontend to call this API. "*" is fine for a test-mode
       # demo; after the frontend is live you can tighten this to its exact
       # origin, e.g. https://your-app.vercel.app
