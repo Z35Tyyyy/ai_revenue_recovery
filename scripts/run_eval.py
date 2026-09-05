@@ -47,7 +47,7 @@ def main() -> None:
     settings = get_settings()
     settings.ensure_dirs()
 
-    console.rule("[bold]AI Revenue Recovery · held-out evaluation")
+    console.rule("[bold]Rebound · held-out evaluation")
     rm = RecoveryModel.load(settings.model_dir)
     tm = TimingModel.load(settings.model_dir)
 
@@ -141,7 +141,7 @@ def _write_results_md(result, up_fixed, up_generic, ope, args, path: Path) -> No
         "fixed_retry": "Fixed next-day retry (Razorpay default)",
         "fixed_retry_14d": "Fixed daily retry · 14-day window (fair control)",
         "generic_dunning": "Fixed retry + channel/language-matched dunning",
-        "engine": "**AI Revenue Recovery engine**",
+        "engine": "**Rebound engine**",
     }
     lines = [
         "# Results",

@@ -1,6 +1,6 @@
 # Dashboard (React + Vite)
 
-The analytics UI for the AI Revenue Recovery engine.
+The analytics UI for the Rebound recovery engine.
 
 ## Run
 

@@ -5,7 +5,7 @@ PORT ?= 8000
 HOST ?= 0.0.0.0
 
 help:
-	@echo "AI Revenue Recovery — commands"
+	@echo "Rebound — commands"
 	@echo "  make install         Install Python dependencies"
 	@echo "  make simulate        Generate synthetic subscription + failed-payment dataset"
 	@echo "  make train           Train recovery-probability + optimal-timing models"

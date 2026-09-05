@@ -15,6 +15,11 @@ export function Problem() {
             <br />
             drains out the back.
           </h2>
+          <p className="section__lede">
+            Every retry engine is the ex who keeps calling — same number, same time, every
+            day, no idea why you stopped picking up. It costs a bank fee each time, and
+            nudges a good customer toward cancelling for real.
+          </p>
         </Reveal>
 
         <div className="problem__grid">
@@ -76,9 +81,10 @@ export function Taxonomy() {
           <span className="eyebrow">Diagnose</span>
           <h2 className="section__title">Not all failures are equal.</h2>
           <p className="section__lede">
-            Every raw Razorpay reason code maps to one of six recoverability classes. The
-            class decides which actions even make sense — you can&rsquo;t retry an expired
-            card into success.
+            Rebound figures out why it ended — expired card, empty account, paused mandate,
+            or an actual hard no — and plays each one differently. Every raw Razorpay reason
+            code maps to one of six recoverability classes, and the class decides which
+            actions even make sense — you can&rsquo;t retry an expired card into success.
           </p>
         </Reveal>
 

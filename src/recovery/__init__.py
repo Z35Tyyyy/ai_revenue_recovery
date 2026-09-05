@@ -1,4 +1,4 @@
-"""AI Revenue Recovery — an agentic engine that recovers failed recurring payments.
+"""Rebound — an agentic engine that recovers revenue at risk on Razorpay.
 
 Public surface is intentionally small; import submodules directly, e.g.::
 

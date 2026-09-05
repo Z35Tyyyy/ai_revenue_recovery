@@ -1,14 +1,14 @@
 <div align="center">
 
-# ♻️ AI Revenue Recovery
+# ♻️ Rebound
 
-### An agent that wins back revenue at risk across the funnel — on Razorpay
+### The payment didn't fail because they stopped wanting you
 
-*Failed payments · abandoned checkouts · overdue invoices — one agent, measured on each.*
+*Failed charges · abandoned checkouts · overdue invoices — one agent that knows when to try again, and when to let go.*
 
 **Razorpay AI Buildathon 2026 — Track 3**
 
-*Everyone maximises recovery **rate** — the wrong number. This agent recovers more money with **half the bank retries**, because it optimises what the merchant **keeps**, not gross volume.*
+*Everyone maximises recovery **rate** — the wrong number. Rebound recovers more money with **half the bank retries**, because it optimises what the merchant **keeps**, not gross volume. **Value, not volume.***
 
 </div>
 
@@ -16,15 +16,19 @@
 
 ## 📖 Read this first — what is this, in plain English?
 
+Every retry engine is the ex who keeps calling. Same number, same time, every day, no idea why you stopped picking up. **Rebound** figures out *why* it ended — expired card, empty account, paused mandate, actual hard no — and plays each one differently. It waits for salary day instead of begging on the 3rd. It sends a re-auth nudge instead of hammering a dead card. And when it's genuinely over, it stops, because a retry you'll never win costs you a bank fee and a customer who now cancels on purpose.
+
+Now the plain version.
+
 Imagine you run a subscription business — a music app, a SaaS tool, a gym. Every month you auto-charge your customers' cards or UPI. **Some of those charges fail** — the card expired, there wasn't enough money on that particular day, the bank had a hiccup, a UPI mandate got paused.
 
 Here's the painful part: **the customer never decided to leave.** They still want the service. The *payment* just didn't go through. This silent, accidental loss is called **involuntary churn**, and it quietly bleeds **20–40% of recurring revenue** out of subscription businesses.
 
 What does everyone do about it today? Something dumb: **retry the exact same charge tomorrow, at the same time, for every failure.** Retrying an *expired card* is pointless. Retrying an *empty account* mid-month is pointless. But retrying that same empty account *on the customer's salary day* would sail through — and nobody bothers to figure that out.
 
-**This project is an AI agent that figures it out — for every single failed charge.** It looks at *why* the payment failed, predicts the smartest way (and moment) to win it back, does it, learns from what happened, and — crucially — **knows when to stop** instead of annoying a good customer or burning money on a hopeless case.
+**Rebound is an AI agent that figures it out — for every single failed charge.** It looks at *why* the payment failed, predicts the smartest way (and moment) to win it back, does it, learns from what happened, and — crucially — **knows when to stop** instead of annoying a good customer or burning money on a hopeless case.
 
-> 💡 **The one idea to remember:** *recovery rate* (how many charges you claw back) is the wrong scoreboard. It ignores the **cost** of clawing them back — bank retries have fees and penalties, and pestering customers makes them cancel for real. This agent optimises **net value**: money recovered *minus* the cost to recover it. It ends up recovering **more money with far less effort.** That's the whole thesis: **value, not volume.**
+> 💡 **The one idea to remember:** *recovery rate* (how many charges you claw back) is the wrong scoreboard. It ignores the **cost** of clawing them back — bank retries have fees and penalties, and pestering customers makes them cancel for real. Rebound optimises **net value**: money recovered *minus* the cost to recover it. It ends up recovering **more money with far less effort.** That's the whole thesis: **value, not volume.**
 
 ---
 
@@ -222,7 +226,7 @@ On **9,000 unseen failed charges**, every policy facing identical hidden ground 
 | Razorpay next-day retry *(default)* | 47.1% | ₹63.50L | 26,361 | ₹62.45L |
 | Aggressive 14-day retry *(fair control)* | 58.4% | ₹78.10L | 67,499 | ₹75.40L |
 | Retry + language-matched dunning | 56.8% | ₹75.89L | 24,385 | ₹74.90L |
-| **🏆 AI Revenue Recovery** | **67.8%** | **₹91.05L** | **12,906** | **₹90.51L** |
+| **🏆 Rebound** | **67.8%** | **₹91.05L** | **12,906** | **₹90.51L** |
 
 **+20.7 points and +₹27.55L over Razorpay's default — with roughly half the bank retries.** It even beats the *aggressive* 14-day retrier (58.4%) while using **5× fewer retries**. On **net value** — money recovered *minus* the ~₹4/retry + messaging cost to get it — the gap is even wider: **₹90.51L vs ₹75.40L.** *Value, not volume.*
 

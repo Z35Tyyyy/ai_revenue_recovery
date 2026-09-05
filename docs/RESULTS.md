@@ -19,7 +19,7 @@ Evaluated on a held-out population of **6,000 customers** and **9,000 failed rec
 | Fixed next-day retry (Razorpay default) | 47.1% | ₹63,50,215 | 47.8% | 26,361 | 0 | 1.7 |
 | Fixed daily retry · 14-day window (fair control) | 58.4% | ₹78,10,095 | 58.8% | 67,499 | 0 | 2.9 |
 | Fixed retry + channel/language-matched dunning | 56.8% | ₹75,89,284 | 57.1% | 24,385 | 5,664 | 1.7 |
-| **AI Revenue Recovery engine** | 67.8% | ₹91,05,198 | 68.5% | 12,906 | 8,467 | 4.4 |
+| **Rebound engine** | 67.8% | ₹91,05,198 | 68.5% | 12,906 | 8,467 | 4.4 |
 
 ## Recovery rate by failure class (engine)
 

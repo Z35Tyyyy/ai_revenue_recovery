@@ -34,7 +34,7 @@ export function Nav() {
         <a href="#top" className="nav__brand">
           <Logo />
           <span className="nav__name">
-            Revenue Recovery<span className="nav__sub">/ agentic engine</span>
+            Rebound<span className="nav__sub">/ revenue recovery agent</span>
           </span>
         </a>
         <nav className="nav__links" aria-label="Sections">

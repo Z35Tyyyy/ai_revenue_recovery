@@ -38,5 +38,5 @@ export const POLICY_LABEL = {
   fixed_retry: "Fixed retry",
   fixed_retry_14d: "Fixed retry · 14d window",
   generic_dunning: "Retry + generic dunning",
-  engine: "AI Revenue Recovery",
+  engine: "Rebound",
 };

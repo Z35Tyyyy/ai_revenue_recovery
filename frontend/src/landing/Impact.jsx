@@ -151,7 +151,7 @@ export function Gateway() {
         </Reveal>
       </div>
       <footer className="lp__footer container">
-        <span>AI Revenue Recovery</span>
+        <span>Rebound</span>
         <span className="lp__footer-dim">Razorpay AI Buildathon 2026 · Track 3</span>
       </footer>
     </section>

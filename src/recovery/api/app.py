@@ -1,4 +1,4 @@
-"""FastAPI backend for the AI Revenue Recovery dashboard.
+"""FastAPI backend for the Rebound dashboard.
 
 Run: ``uvicorn recovery.api.app:app --reload --port 8000``
 """
@@ -46,7 +46,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="AI Revenue Recovery",
+    title="Rebound",
     description="Agentic recovery of failed recurring payments on Razorpay.",
     version="0.1.0",
     lifespan=lifespan,

@@ -39,7 +39,7 @@ def main() -> None:
     settings.ensure_dirs()
     seed = args.seed if args.seed is not None else settings.seed
 
-    console.rule("[bold]AI Revenue Recovery · data generation")
+    console.rule("[bold]Rebound · data generation")
     console.print(
         f"Population: [cyan]{args.customers}[/] customers · "
         f"[cyan]{args.failures}[/] failed charges · seed=[cyan]{seed}[/]"

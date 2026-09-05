@@ -64,7 +64,11 @@ export function Overview() {
   return (
     <div className="page console">
       <p className="page__lead page__lead--claim">
-        Everyone maximises recovery <em>rate</em> — the wrong number. This agent recovers{" "}
+        Recovered <strong>₹3.98Cr</strong> of <strong>₹5.51Cr</strong> at risk, across the funnel.{" "}
+        <em>Zero desperation.</em>
+      </p>
+      <p className="page__lead">
+        Everyone maximises recovery <em>rate</em> — the wrong number. Rebound recovers{" "}
         <strong>more money with half the bank retries</strong>, because it optimises what the merchant
         keeps, not gross volume.
       </p>

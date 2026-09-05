@@ -66,7 +66,7 @@ def main() -> None:
     failure = failure.model_copy(update={"occurred_at": datetime.now(timezone.utc)})
     case = build_case(failure, pop.customers, pop.subscriptions)
 
-    console.rule("[bold]AI Revenue Recovery · live demo")
+    console.rule("[bold]Rebound · live demo")
     cust = case.customer
     console.print(
         Panel(

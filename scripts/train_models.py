@@ -23,7 +23,7 @@ def main() -> None:
     settings = get_settings()
     settings.ensure_dirs()
 
-    console.rule("[bold]AI Revenue Recovery · model training")
+    console.rule("[bold]Rebound · model training")
     metrics = train_all(settings.data_dir, settings.model_dir, seed=settings.seed)
 
     table = Table(title="Held-out validation metrics", show_lines=False)

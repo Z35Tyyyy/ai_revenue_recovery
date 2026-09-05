@@ -177,7 +177,7 @@ export function Live() {
       <div className="live__race">
         <Card className="race race--engine" glow>
           <div className="race__head">
-            <span className="race__name">AI Revenue Recovery</span>
+            <span className="race__name">Rebound</span>
             <Pill tone="pos" icon>engine</Pill>
           </div>
           <div className="race__rate tnum">{(eng.rate * 100).toFixed(1)}%</div>

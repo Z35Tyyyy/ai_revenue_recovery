@@ -89,18 +89,19 @@ export function Hero({ metrics }) {
         <div className="hero__copy">
           <span className="eyebrow">Razorpay AI Buildathon · Track&nbsp;3</span>
           <h1 className="hero__title">
-            Your customers
+            The payment failed.
             <br />
-            didn&rsquo;t leave.
+            The relationship
             <br />
-            <span className="hero__title-accent">The payment did.</span>
+            <span className="hero__title-accent">didn&rsquo;t.</span>
           </h1>
           <p className="hero__lede">
-            20–40% of recurring revenue is lost to <em>involuntary</em> churn — cards
-            that expired, funds that weren&rsquo;t there on debit day, mandates that
-            lapsed. An agent that wins it back by optimising what you <strong>keep</strong>{" "}
-            — more money, with <strong>half the bank retries</strong> — not by blindly
-            retrying more.
+            The payment didn&rsquo;t fail because they stopped wanting you — a card
+            expired, an account was empty on debit day, a mandate lapsed.{" "}
+            <strong>Rebound</strong> is one agent for failed charges, abandoned checkouts
+            and overdue invoices that knows when to <strong>try again</strong>, and when to{" "}
+            <strong>let go</strong> — winning back more money with half the bank retries,
+            not by blindly retrying more.
           </p>
 
           <div className="hero__cta">

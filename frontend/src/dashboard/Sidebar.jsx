@@ -23,7 +23,7 @@ export function Sidebar({ online }) {
       <Link to="/" className="side__brand">
         <Logo size={24} />
         <span>
-          Revenue<span className="side__brand-dim">Recovery</span>
+          Re<span className="side__brand-dim">bound</span>
         </span>
       </Link>
 

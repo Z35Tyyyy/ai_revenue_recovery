@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "recovery"
 version = "0.1.0"
-description = "AI Revenue Recovery — an agentic engine that recovers failed recurring payments on Razorpay"
+description = "Rebound — an agentic engine that recovers revenue at risk on Razorpay"
 requires-python = ">=3.11"
 readme = "README.md"
 
